@@ -12,10 +12,10 @@
                 <div class="card-header bg-primary text-white py-3">
                     <h4 class="b-0">Complete Your Subscription</h4>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body p-0 h-auto">
                     <div class="row g-0">
                         <!-- Payment Area (Left Side) -->
-                        <div class="col-md-7 p-4 border-end">
+                        <div class="col-md-7 p-4 border-end h-auto">
                             <h5 class="mb-4">Payment Method</h5>
                             
                             {% if business.square_card_id and card_details %}
@@ -110,34 +110,58 @@
                             <div class="subscription-details mb-4">
                                 <div class="d-flex justify-content-between mb-2">
                                     <span class="fw-medium">Plan:</span>
-                                    <span>{{ plan.name }}</span>
+                                    <span>{{ plan.display_name }}</span>
                                 </div>
                                 <div class="d-flex justify-content-between mb-2">
                                     <span class="fw-medium">Billing Cycle:</span>
                                     <span>{{ plan.get_billing_cycle_display }}</span>
                                 </div>
+                                
+                                {% if platform_settings.setup_fee and not has_paid_setup_fee %}
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="fw-medium">Setup Fee (One-time):</span>
+                                    <span>${{ platform_settings.setup_fee_amount }}</span>
+                                </div>
+                                {% endif %}
                                 {% if plan.billing_cycle == 'yearly' %}
                                 <div class="d-flex justify-content-between mb-2">
                                     <span class="fw-medium">Monthly Price:</span>
-                                    <span>${{ plan.price }}</span>
+                                    <span>${{ plan.get_monthly_display_price }}</span>
                                 </div>
                                 <div class="d-flex justify-content-between mb-2">
                                     <span class="fw-medium">Annual Price (12 months):</span>
-                                    <span>${{ plan.price|floatformat:2|multiply:12 }}</span>
+                                    <span>${{ plan.get_display_price }}</span>
                                 </div>
                                 <div class="d-flex justify-content-between mb-2 text-success">
                                     <span class="fw-medium">Annual Discount (20%):</span>
-                                    <span>-${{ plan.price|floatformat:2|multiply:12|multiply:0.2 }}</span>
+                                    <span>-${{ plan.price|multiply:0.2|floatformat:2 }}</span>
                                 </div>
                                 <div class="d-flex justify-content-between mb-3">
                                     <span class="fw-bold">Base Price:</span>
-                                    <span id="base-price" class="fw-bold">${{ plan.price|floatformat:2|multiply:12|multiply:0.8 }}</span>
+                                    <span id="base-price" class="fw-bold">${{ plan.get_display_price|floatformat:2 }}</span>
                                 </div>
+                                {% if platform_settings.setup_fee and not has_paid_setup_fee %}
+                                <div class="d-flex justify-content-between mb-3">
+                                    <span class="fw-bold">Setup Fee:</span>
+                                    <span id="setup-fee" class="fw-bold">${{ platform_settings.setup_fee_amount|floatformat:2 }}</span>
+                                </div>
+                                <input type="hidden" id="setup-fee-amount" value="{{ platform_settings.setup_fee_amount }}">
+                                {% endif %}
                                 {% else %}
                                 <div class="d-flex justify-content-between mb-3">
                                     <span class="fw-medium">Base Price:</span>
-                                    <span id="base-price">${{ plan.price }}</span>
+                                    <span id="base-price">${{ plan.get_display_price }}</span>
                                 </div>
+                                {% if platform_settings.setup_fee and not has_paid_setup_fee %}
+                                <div class="d-flex justify-content-between mb-3">
+                                    <span class="fw-medium">
+                                        Setup Fee:
+                                        <i class="fas fa-info-circle text-primary ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="This is a mandatory one-time fee for setting up CleaningBiz on your behalf for proper usage. This fee is only charged once."></i>
+                                    </span>
+                                    <span id="setup-fee">${{ platform_settings.setup_fee_amount|floatformat:2 }}</span>
+                                </div>
+                                <input type="hidden" id="setup-fee-amount" value="{{ platform_settings.setup_fee_amount }}">
+                                {% endif %}
                                 {% endif %}
                             </div>
                             
@@ -164,21 +188,35 @@
                                 <div class="d-flex justify-content-between mb-2">
                                     <span class="fw-bold">Total:</span>
                                     {% if plan.billing_cycle == 'yearly' %}
-                                        {% with yearly_price=plan.price|floatformat:2|multiply:12|multiply:0.8 %}
+                                        {% with yearly_price=plan.get_display_price %}
                                             {% if yearly_price == '0.00' %}
                                                 <span id="total-price" class="display-8 total-price badge bg-success">Free</span>
                                             {% else %}
-                                                <span id="total-price" class="fw-bold total-price">${{ yearly_price }}</span>
+                                                {% if platform_settings.setup_fee and not has_paid_setup_fee %}
+                                                    {% with total_with_setup=yearly_price|add:platform_settings.setup_fee_amount %}
+                                                        <span id="total-price" class="fw-bold total-price">${{ total_with_setup|floatformat:2 }}</span>
+                                                        <input type="hidden" id="original-price" value="{{ total_with_setup }}">
+                                                    {% endwith %}
+                                                {% else %}
+                                                    <span id="total-price" class="fw-bold total-price">${{ yearly_price }}</span>
+                                                    <input type="hidden" id="original-price" value="{{ yearly_price }}">
+                                                {% endif %}
                                             {% endif %}
-                                            <input type="hidden" id="original-price" value="{{ yearly_price }}">
                                         {% endwith %}
                                     {% else %}
-                                        {% if plan.price == 0 %}
+                                        {% if plan.get_display_price == 0 %}
                                             <span id="total-price" class="display-8 badge bg-success">Free</span>
                                         {% else %}
-                                            <span id="total-price" class="fw-bold total-price">${{ plan.price }}</span>
+                                            {% if platform_settings.setup_fee and not has_paid_setup_fee %}
+                                                {% with total_with_setup=plan.get_display_price|add:platform_settings.setup_fee_amount %}
+                                                    <span id="total-price" class="fw-bold total-price">${{ total_with_setup|floatformat:2 }}</span>
+                                                    <input type="hidden" id="original-price" value="{{ total_with_setup }}">
+                                                {% endwith %}
+                                            {% else %}
+                                                <span id="total-price" class="fw-bold total-price">${{ plan.get_display_price }}</span>
+                                                <input type="hidden" id="original-price" value="{{ plan.get_display_price }}">
+                                            {% endif %}
                                         {% endif %}
-                                        <input type="hidden" id="original-price" value="{{ plan.price }}">
                                     {% endif %}
                                 </div>
                                 <div class="d-flex justify-content-between">
@@ -239,7 +277,13 @@
 {% endif %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Coupon functionality
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+        
+        // Variables
         const couponInput = document.getElementById('coupon-input');
         const applyButton = document.getElementById('apply-coupon-btn');
         const couponFeedback = document.getElementById('coupon-feedback');
@@ -265,6 +309,8 @@
                 freeInput.value = 'true';
                 payButton.closest('form').appendChild(freeInput);
             }
+        } else {
+            payButton.textContent = `Pay ${totalPrice.textContent}`;
         }
         
         let appliedCoupon = null;
@@ -377,10 +423,10 @@
                 };
                         
                         // Save to localStorage and update hidden input
-                        saveCouponState(appliedCoupon);
-                        
-                        // Update discount amount hidden input
-                        document.getElementById('discount_amount').value = data.discount_amount;
+                saveCouponState(appliedCoupon);
+                
+                // Update discount amount hidden input
+                document.getElementById('discount_amount').value = data.discount_amount;
                 
                 // Update price display
                 updatePriceWithDiscount();
@@ -410,6 +456,8 @@
                     couponFeedback.classList.remove('text-success');
                     couponFeedback.classList.add('text-danger');
                 }
+
+                payButton.textContent = `Pay ${totalPrice.textContent}`;
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -419,97 +467,6 @@
                 couponFeedback.classList.add('text-danger');
             });
         });
-        
-        function updatePriceWithDiscount() {
-            if (!appliedCoupon) {
-                // Reset to original price
-                const originalPriceValue = parseFloat(originalPrice.value);
-                if (originalPriceValue === 0) {
-                    totalPrice.textContent = 'Free';
-                    discountRow.classList.add('d-none');
-                    
-                    // Update payment button text for free subscription
-                    if (payButton) {
-                        payButton.textContent = 'Subscribe for Free';
-                        
-                        // Add a hidden input to indicate this is a free subscription
-                        let freeInput = document.getElementById('is-free-subscription');
-                        if (!freeInput) {
-                            freeInput = document.createElement('input');
-                            freeInput.type = 'hidden';
-                            freeInput.id = 'is-free-subscription';
-                            freeInput.name = 'is_free_subscription';
-                            freeInput.value = 'true';
-                            payButton.closest('form').appendChild(freeInput);
-                        }
-                    }
-                } else {
-                    totalPrice.textContent = '$' + originalPriceValue.toFixed(2);
-                    discountRow.classList.add('d-none');
-                    
-                    // Update payment button text
-                    if (payButton) {
-                        payButton.textContent = 'Pay $' + originalPriceValue.toFixed(2);
-                    }
-                }
-                return;
-            }
-            
-            const originalPriceValue = parseFloat(originalPrice.value);
-            let discountValue = 0;
-            
-            if (appliedCoupon.discount_type === 'percentage') {
-                // Percentage discount
-                discountValue = originalPriceValue * (appliedCoupon.discount_value / 100);
-            } else {
-                // Fixed amount discount
-                discountValue = Math.min(appliedCoupon.discount_value, originalPriceValue);
-            }
-            
-            // Format discount to 2 decimal places
-            const formattedDiscount = discountValue.toFixed(2);
-            
-            // Calculate new total
-            const newTotal = Math.max(0, originalPriceValue - discountValue).toFixed(2);
-            
-            // Update UI
-            discountAmount.textContent = '-$' + formattedDiscount;
-            discountRow.classList.remove('d-none');
-            
-            // Check if the total is zero
-            if (parseFloat(newTotal) === 0) {
-                totalPrice.textContent = 'Free';
-                
-                // Update payment button text for free subscription
-                if (payButton) {
-                    payButton.textContent = 'Subscribe for Free';
-                    
-                    // Add a hidden input to indicate this is a free subscription
-                    let freeInput = document.getElementById('is-free-subscription');
-                    if (!freeInput) {
-                        freeInput = document.createElement('input');
-                        freeInput.type = 'hidden';
-                        freeInput.id = 'is-free-subscription';
-                        freeInput.name = 'is_free_subscription';
-                        freeInput.value = 'true';
-                        payButton.closest('form').appendChild(freeInput);
-                    }
-                }
-            } else {
-                totalPrice.textContent = '$' + newTotal;
-                
-                // Update payment button text
-                if (payButton) {
-                    payButton.textContent = 'Pay $' + newTotal;
-                    
-                    // Remove the free subscription flag if it exists
-                    const freeInput = document.getElementById('is-free-subscription');
-                    if (freeInput) {
-                        freeInput.remove();
-                    }
-                }
-            }
-        }
         
         function removeCoupon() {
             appliedCoupon = null;
@@ -543,18 +500,131 @@
             discountRow.classList.add('d-none');
             
             // Reset total price to original price
-            const originalPriceValue = parseFloat(originalPrice.textContent.replace('$', ''));
+            const originalPriceValue = parseFloat(originalPrice.value);
             totalPrice.textContent = '$' + originalPriceValue.toFixed(2);
             
             // Update payment button text
             if (payButton) {
-                payButton.textContent = 'Pay $' + originalPriceValue.toFixed(2);
+                payButton.textContent = 'Complete Payment';
             }
             
             // Remove free subscription flag if it exists
             const freeInput = document.getElementById('is-free-subscription');
             if (freeInput) {
                 freeInput.remove();
+            }
+
+            payButton.textContent = `Pay ${totalPrice.textContent}`;
+        }
+        
+        function updatePriceWithDiscount() {
+            // Get the setup fee amount if it exists
+            const setupFeeElement = document.getElementById('setup-fee-amount');
+            const setupFeeAmount = setupFeeElement ? parseFloat(setupFeeElement.value) : 0;
+            
+            if (!appliedCoupon) {
+                // Reset to original price
+                const originalPriceValue = parseFloat(originalPrice.value);
+                const totalWithSetupFee = originalPriceValue + setupFeeAmount;
+                
+                if (originalPriceValue === 0) {
+                    // If plan is free but there's a setup fee
+                    if (setupFeeAmount > 0) {
+                        totalPrice.textContent = '$' + setupFeeAmount.toFixed(2);
+                        discountRow.classList.add('d-none');
+                        
+                        // Update payment button text
+                        if (payButton) {
+                            payButton.textContent = 'Complete Payment';
+                        }
+                    } else {
+                        totalPrice.textContent = 'Free';
+                        discountRow.classList.add('d-none');
+                        
+                        // Update payment button text for free subscription
+                        if (payButton) {
+                            payButton.textContent = 'Subscribe for Free';
+                            
+                            // Add a hidden input to indicate this is a free subscription
+                            let freeInput = document.getElementById('is-free-subscription');
+                            if (!freeInput) {
+                                freeInput = document.createElement('input');
+                                freeInput.type = 'hidden';
+                                freeInput.id = 'is-free-subscription';
+                                freeInput.name = 'is_free_subscription';
+                                freeInput.value = 'true';
+                                payButton.closest('form').appendChild(freeInput);
+                            }
+                        }
+                    }
+                } else {
+                    totalPrice.textContent = '$' + totalWithSetupFee.toFixed(2);
+                    discountRow.classList.add('d-none');
+                    
+                    // Update payment button text
+                    if (payButton) {
+                        payButton.textContent = 'Complete Payment';
+                    }
+                }
+                return;
+            }
+            
+            // When coupon is applied, use the exact discount amount from the backend
+            const originalPriceValue = parseFloat(originalPrice.value);
+            
+            // Use the discount amount directly from the server response
+            // instead of recalculating it
+            let discountValue = parseFloat(appliedCoupon.discount_amount);
+            
+            // Calculate new total: (plan price - discount) + setup fee
+            // or use the discounted_price directly from the server if available
+            let discountedPlanPrice = parseFloat(appliedCoupon.discounted_price) || Math.max(0, originalPriceValue - discountValue);
+            let newTotal = discountedPlanPrice + setupFeeAmount;
+            
+            // Format discount to 2 decimal places
+            const formattedDiscount = discountValue.toFixed(2);
+            
+            // Update UI
+            discountAmount.textContent = '-$' + formattedDiscount;
+            discountRow.classList.remove('d-none');
+            
+            // Update hidden input for discount amount
+            document.getElementById('discount_amount').value = discountValue.toFixed(2);
+            
+            // Check if the total is zero
+            if (parseFloat(newTotal) === 0) {
+                totalPrice.textContent = 'Free';
+                totalPrice.classList.add('badge', 'bg-success');
+                
+                // Update payment button text for free subscription
+                if (payButton) {
+                    payButton.textContent = 'Subscribe for Free';
+                    
+                    // Add a hidden input to indicate this is a free subscription
+                    let freeInput = document.getElementById('is-free-subscription');
+                    if (!freeInput) {
+                        freeInput = document.createElement('input');
+                        freeInput.type = 'hidden';
+                        freeInput.id = 'is-free-subscription';
+                        freeInput.name = 'is_free_subscription';
+                        freeInput.value = 'true';
+                        payButton.closest('form').appendChild(freeInput);
+                    }
+                }
+            } else {
+                totalPrice.textContent = '$' + newTotal.toFixed(2);
+                totalPrice.classList.remove('badge', 'bg-success');
+                
+                // Update payment button text
+                if (payButton) {
+                    payButton.textContent = 'Complete Payment';
+                    
+                    // Remove the free subscription flag if it exists
+                    const freeInput = document.getElementById('is-free-subscription');
+                    if (freeInput) {
+                        freeInput.remove();
+                    }
+                }
             }
         }
         

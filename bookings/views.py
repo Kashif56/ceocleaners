@@ -15,6 +15,7 @@ from django.http import JsonResponse
 from automation.utils import format_phone_number
 from django.utils import timezone
 
+@login_required
 def all_bookings(request):
     if not Business.objects.filter(user=request.user).exists():
         return redirect('accounts:register_business')

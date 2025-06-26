@@ -101,7 +101,8 @@ INSTALLED_APPS = [
     'usage_analytics',
     'subscription',
     'retell_agent',
-    'admin_dashbaord'
+    'admin_dashbaord',
+    'saas',
 ]
 
 MIDDLEWARE = [
@@ -343,7 +344,7 @@ LOGGING = {
 
 ROLLBAR = {
     'access_token': '92cb7249f2024f18aec00cb16b729224',
-    'environment': 'production',
+    'environment': 'production' if DEBUG else 'development',
     'code_version': '1.0',
     'root': BASE_DIR,
 }

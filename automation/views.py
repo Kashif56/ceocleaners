@@ -32,19 +32,30 @@ def LandingPage(request):
     from subscription.models import SubscriptionPlan, BusinessSubscription
     
     # Get all plans
-    plans = SubscriptionPlan.objects.filter(is_active=True, name__in=['Starter Plan', 'Professional Plan', 'Enterprise Plan']).order_by('price')
+    plans = SubscriptionPlan.objects.filter(is_active=True).exclude(plan_tier='trial').order_by('price')
 
-    trial_plan = SubscriptionPlan.objects.filter(is_active=True, name__icontains='Trial').first()
+    trial_plan = SubscriptionPlan.objects.filter(is_active=True, plan_tier='trial').first()
+    
+    # Initialize variables
+    is_eligible_for_trial = True
+    business_subscriptions_count = 0
+    
     if request.user.is_authenticated:
         business = request.user.business_set.first()
-        is_eligible_for_trial = BusinessSubscription.objects.filter(plan=trial_plan, business=business).exists()
-    else:
-        is_eligible_for_trial = True
+        if business:
+            # Check trial eligibility
+            is_eligible_for_trial = not BusinessSubscription.objects.filter(plan=trial_plan, business=business).exists()
+            
+            # Count active business subscriptions
+            business_subscriptions_count = BusinessSubscription.objects.filter(
+                business=business
+            ).count()
     
     return render(request, 'core/LandingPage.html', {
         'plans': plans,
         'trial_plan': trial_plan,
-        'is_eligible_for_trial': is_eligible_for_trial
+        'is_eligible_for_trial': is_eligible_for_trial,
+        'business_subscriptions_count': business_subscriptions_count
     })
 
 def PricingPage(request):
@@ -52,9 +63,9 @@ def PricingPage(request):
     from subscription.models import SubscriptionPlan, Feature
    
     # Get all plans
-    plans = SubscriptionPlan.objects.filter(is_active=True, name__in=['Starter Plan', 'Professional Plan', 'Enterprise Plan']).order_by('price')
+    plans = SubscriptionPlan.objects.filter(is_active=True).exclude(plan_tier='trial').order_by('price')
 
-    trial_plan = SubscriptionPlan.objects.filter(is_active=True, name__icontains='Trial').first()
+    trial_plan = SubscriptionPlan.objects.filter(is_active=True, plan_tier='trial').first()
     
     # Get all active features
     features = Feature.objects.filter(is_active=True).order_by('display_name')
@@ -234,6 +245,12 @@ def home(request):
     recent_activities.sort(key=lambda x: x['timestamp'], reverse=True)
     recent_activities = recent_activities[:10]
 
+    # Count active business subscriptions
+    from subscription.models import BusinessSubscription
+    business_subscriptions_count = BusinessSubscription.objects.filter(
+        business=business
+    ).count()
+    
     context = {
         'total_leads': total_leads,
         'converted_leads': converted_leads,
@@ -244,6 +261,7 @@ def home(request):
         'active_cleaners': active_cleaners,
         'top_rated_cleaners': top_rated_cleaners,
         'recent_activities': recent_activities,
+        'business_subscriptions_count': business_subscriptions_count,
     }
     
     return render(request, 'core/home.html', context)    
@@ -1595,7 +1613,7 @@ def sitemap(request):
     """
     Render the sitemap page showing all available routes in the application.
     """
-    return render(request, 'sitemap.html')
+    return render(request, 'core/sitemap.html')
 
 
 @login_required

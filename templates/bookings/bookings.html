@@ -94,27 +94,27 @@
         <ul class="nav nav-tabs nav-tabs-custom" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab">
-                    <i class="fas fa-list-ul me-2"></i>All Bookings <span class="badge rounded-pill bg-primary ms-1">{{ total_bookings }}</span>
+                    <i class="fas fa-list-ul me-2"></i>All Bookings
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#upcoming" type="button" role="tab">
-                    <i class="fas fa-calendar-day me-2"></i>Upcoming <span class="badge rounded-pill bg-info ms-1">{{ upcoming_paid_count|default:"0" }}</span>
+                    <i class="fas fa-calendar-day me-2"></i>Upcoming
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#awaiting" type="button" role="tab">
-                    <i class="fas fa-clock me-2"></i>Awaiting Payment <span class="badge rounded-pill bg-warning ms-1">{{ pending_count }}</span>
+                    <i class="fas fa-clock me-2"></i>Awaiting Payment
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#past" type="button" role="tab">
-                    <i class="fas fa-history me-2"></i>Past <span class="badge rounded-pill bg-secondary ms-1">{{ past_bookings_count }}</span>
+                    <i class="fas fa-history me-2"></i>Past
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#cancelled" type="button" role="tab">
-                    <i class="fas fa-ban me-2"></i>Cancelled <span class="badge rounded-pill bg-danger ms-1">{{ cancelled_bookings_count }}</span>
+                    <i class="fas fa-ban me-2"></i>Cancelled
                 </button>
             </li>
         </ul>

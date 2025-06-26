@@ -75,8 +75,12 @@ def subscription_plans(request):
 def add_plan(request):
     if request.method == 'POST':
         name = request.POST.get('name')
+        display_name = request.POST.get('display_name')
         price = request.POST.get('price')
         billing_cycle = request.POST.get('billing_cycle')
+        plan_tier = request.POST.get('plan_tier')
+        plan_type = request.POST.get('plan_type')
+        sort_order = request.POST.get('sort_order')
         voice_minutes = request.POST.get('voice_minutes')
         sms_messages = request.POST.get('sms_messages')
         agents = request.POST.get('agents')
@@ -88,8 +92,12 @@ def add_plan(request):
         # Create plan
         plan = SubscriptionPlan.objects.create(
             name=name,
+            display_name=display_name,
             price=price,
             billing_cycle=billing_cycle,
+            plan_tier=plan_tier,
+            plan_type=plan_type,
+            sort_order=sort_order,
             voice_minutes=voice_minutes,
             sms_messages=sms_messages,
             agents=agents,
@@ -113,7 +121,7 @@ def add_plan(request):
         other_billing_cycle = 'yearly' if billing_cycle == 'monthly' else 'monthly'
         try:
             corresponding_plan = SubscriptionPlan.objects.get(
-                name=name,
+                plan_tier=plan_tier,
                 billing_cycle=other_billing_cycle
             )
             
@@ -150,8 +158,12 @@ def edit_plan(request):
         plan = get_object_or_404(SubscriptionPlan, id=plan_id)
         
         plan.name = request.POST.get('name')
+        plan.display_name = request.POST.get('display_name')
         plan.price = request.POST.get('price')
         plan.billing_cycle = request.POST.get('billing_cycle')
+        plan.plan_tier = request.POST.get('plan_tier')
+        plan.plan_type = request.POST.get('plan_type')
+        plan.sort_order = request.POST.get('sort_order')
         plan.voice_minutes = request.POST.get('voice_minutes')
         plan.sms_messages = request.POST.get('sms_messages')
         plan.agents = request.POST.get('agents')
@@ -178,7 +190,7 @@ def edit_plan(request):
         other_billing_cycle = 'yearly' if plan.billing_cycle == 'monthly' else 'monthly'
         try:
             corresponding_plan = SubscriptionPlan.objects.get(
-                name=plan.name,
+                plan_tier=plan.plan_tier,
                 billing_cycle=other_billing_cycle
             )
             

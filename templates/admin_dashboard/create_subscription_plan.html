@@ -21,27 +21,69 @@
             
             <div class="row mb-4">
                 <div class="col-md-6">
-                    <label for="name" class="form-label">Plan Name</label>
+                    <label for="name" class="form-label">Internal Name</label>
                     <input type="text" class="form-control" id="name" name="name" required>
+                    <small class="text-muted">Internal reference name (not shown to users)</small>
                 </div>
+                <div class="col-md-6">
+                    <label for="display_name" class="form-label">Display Name</label>
+                    <input type="text" class="form-control" id="display_name" name="display_name" required>
+                    <small class="text-muted">Name shown to users</small>
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                
                 <div class="col-md-6">
                     <label for="billing_cycle" class="form-label">Billing Cycle</label>
                     <select class="form-select" id="billing_cycle" name="billing_cycle" required>
+                        <option value="14_days">14 Days</option>
                         <option value="monthly">Monthly</option>
+                        <option value="2_months">2 Months</option>
+                        <option value="3_months">3 Months</option>
+                        <option value="6_months">6 Months</option>
                         <option value="yearly">Yearly</option>
+                        <option value="lifetime">Lifetime</option>
                     </select>
                 </div>
             </div>
             
             <div class="row mb-4">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label for="price" class="form-label">Price</label>
                     <div class="input-group">
                         <span class="input-group-text">$</span>
                         <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" required>
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
+                    <label for="plan_tier" class="form-label">Plan Tier</label>
+                    <select class="form-select" id="plan_tier" name="plan_tier" required>
+                        <option value="starter">Starter</option>
+                        <option value="professional">Professional</option>
+                        <option value="enterprise">Enterprise</option>
+                        <option value="trial">Trial</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                    <small class="text-muted">Used for styling and filtering</small>
+                </div>
+                <div class="col-md-4">
+                    <label for="plan_type" class="form-label">Plan Type</label>
+                    <select class="form-select" id="plan_type" name="plan_type" required>
+                        <option value="paid">Paid</option>
+                        <option value="free">Free</option>
+                        <option value="trial">Trial</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <label for="sort_order" class="form-label">Sort Order</label>
+                    <input type="number" class="form-control" id="sort_order" name="sort_order" min="0" value="0">
+                    <small class="text-muted">Lower numbers appear first</small>
+                </div>
+                <div class="col-md-8">
                     <label class="form-label">Status & Visibility</label>
                     <div class="form-check form-switch mt-2">
                         <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>

@@ -32,7 +32,7 @@ class BusinessApprovalMiddleware:
         # Also skip if URL is exempt or is admin URL
         try:
             current_url = resolve(request.path_info).url_name
-            if current_url in exempt_urls or request.path.startswith('/admin/'):
+            if current_url in exempt_urls or request.path.startswith('/admin'):
                 return self.get_response(request)
         except:
             # If URL can't be resolved, just continue

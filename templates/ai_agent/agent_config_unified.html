@@ -83,6 +83,95 @@
     </div>
 </div>
 
+<!-- Embedding Guide Section -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Embed SMS Agent on External Website</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Embed your AI chatbot widget on any website to provide instant support to your visitors.
+                </div>
+                
+                <h5>1. Include the Script</h5>
+                <p>Add the following script tag to your HTML file before the closing <code>&lt;/body&gt;</code> tag:</p>
+                <div class="code-block bg-light p-3 mb-3 rounded">
+                    <pre class="mb-0"><code>&lt;script src="https://chatbot-widget-khaki.vercel.app/chatbot-widget.js"&gt;&lt;/script&gt;</code></pre>
+                    <button class="btn btn-sm btn-outline-secondary mt-2" onclick="copyToClipboard('script-code')"><i class="fas fa-copy me-1"></i>Copy</button>
+                    <span id="script-code" class="d-none">&lt;script src="https://chatbot-widget-khaki.vercel.app/chatbot-widget.js"&gt;&lt;/script&gt;</span>
+                </div>
+                
+                <h5>2. Initialize the Widget</h5>
+                <p>Add the following script to initialize the widget with your business ID:</p>
+                <div class="code-block bg-light p-3 mb-3 rounded">
+                    <pre class="mb-0"><code>&lt;script&gt;
+  document.addEventListener("DOMContentLoaded", function() {
+    ChatbotWidget.init({
+      businessId: '{{ config.business.businessId }}',  // Your business ID
+      botName: '{{ config.agent_name|default:"Sarah" }}',  // Name of your chatbot assistant
+    });
+  });
+&lt;/script&gt;</code></pre>
+                    <button class="btn btn-sm btn-outline-secondary mt-2" onclick="copyToClipboard('init-code')"><i class="fas fa-copy me-1"></i>Copy</button>
+                    <span id="init-code" class="d-none">&lt;script&gt;
+  document.addEventListener("DOMContentLoaded", function() {
+    ChatbotWidget.init({
+      businessId: '{{ config.business.businessId }}',  // Your business ID
+      botName: '{{ config.agent_name|default:"Sarah" }}',  // Name of your chatbot assistant
+    });
+  });
+&lt;/script&gt;</span>
+                </div>
+                
+                <h5>Configuration Options</h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Type</th>
+                                <th>Required</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>businessId</code></td>
+                                <td>String</td>
+                                <td>Yes</td>
+                                <td>Your unique business identifier</td>
+                            </tr>
+                            <tr>
+                                <td><code>botName</code></td>
+                                <td>String</td>
+                                <td>Yes</td>
+                                <td>The name displayed for your chatbot</td>
+                            </tr>
+                            <tr>
+                                <td><code>initialMessage</code></td>
+                                <td>String</td>
+                                <td>No</td>
+                                <td>The first message displayed when a user starts a new conversation</td>
+                            </tr>
+                            <tr>
+                                <td><code>botAvatar</code></td>
+                                <td>String</td>
+                                <td>No</td>
+                                <td>URL to your bot's avatar image</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+              
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Toast container for notifications -->
 <div class="position-fixed bottom-0 end-0 p-3 d-none" style="z-index: 11">
     <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">

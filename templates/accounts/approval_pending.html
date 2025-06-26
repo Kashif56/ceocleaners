@@ -14,11 +14,19 @@
             <i class="fas fa-clock-rotate-left"></i>
         </div>
         
+        {% if trial_plan %}
         <h1 class="pending-title">Please subscribe to Trial Plan to get started</h1>
         
         <p class="pending-message">
-            Thank you for registering your business with CleaningBiz AI! Please subscribe to Trial Plan to get started to have access to all the features.
+            Thank you for registering your business with CleaningBiz AI! Please subscribe to our Trial Plan to get started and access all features.
         </p>
+        {% else %}
+        <h1 class="pending-title">Please choose a subscription plan to get started</h1>
+        
+        <p class="pending-message">
+            Thank you for registering your business with CleaningBiz AI! Please select a subscription plan to get started and access all features.
+        </p>
+        {% endif %}
         
         <div class="steps-container text-start">
             <h2 class="mb-3">What happens next?</h2>
@@ -37,12 +45,84 @@
             <div class="step">
                 <div class="step-number">2</div>
                 <div class="step-content">
-                    <div class="step-title">Sign Up for 30-Day Trial</div>
-                    <p>Get full access to all CleaningBiz AI features for 30 days for just $30. Experience the power of our platform with no long-term commitment.</p>
                     {% if trial_plan %}
+                    <div class="step-title">Sign Up for {{ trial_plan.get_billing_cycle_display }} Trial</div>
+                    <p>Get full access to all CleaningBiz AI features for {{ trial_plan.get_billing_cycle_display }} for just ${{ trial_plan.price }}. Experience the power of our platform with no long-term commitment.</p>
                     <a href="{% url 'subscription:select_plan' trial_plan.id %}" class="btn trial-btn mt-2">
-                        <i class="fas fa-rocket me-2"></i>Start 30-Day Trial for $30
+                        <i class="fas fa-rocket me-2"></i>Start {{ trial_plan.get_billing_cycle_display }} Trial for ${{ trial_plan.price }}
                     </a>
+                    {% else %}
+                    <div class="step-title">Choose Your Subscription Plan</div>
+                    <p>Select the plan that best fits your business needs. We offer both monthly and yearly subscription options.</p>
+                    
+                    <!-- Pricing Toggle -->
+                    <div class="pricing-toggle mb-4 mt-3">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="pricingToggle" id="monthlyToggle" checked>
+                            <label class="form-check-label" for="monthlyToggle">Monthly</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="pricingToggle" id="yearlyToggle">
+                            <label class="form-check-label" for="yearlyToggle">Yearly <span class="badge bg-success">Save 20%</span></label>
+                        </div>
+                    </div>
+                    
+                    <!-- Monthly Plans -->
+                    <div id="monthlyPlans" class="subscription-plans">
+                        {% if monthly_plans %}
+                            <div class="row">
+                                {% for plan in monthly_plans %}
+                                <div class="col-md-{% if monthly_plans.count == 1 %}12{% elif monthly_plans.count == 2 %}6{% else %}4{% endif %} mb-3">
+                                    <div class="card h-100 {% if plan.plan_tier == 'professional' %}border-primary{% endif %}">
+                                        <div class="card-header {% if plan.plan_tier == 'professional' %}bg-primary text-white{% endif %}">
+                                            <h5 class="card-title mb-0">{{ plan.display_name }}</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <h3 class="price">${{ plan.price }}<span class="period">/month</span></h3>
+                                            <ul class="feature-list">
+                                                <li>{{ plan.agents }} Agents</li>
+                                                <li>{{ plan.cleaners }} Cleaners</li>
+                                                <li>{{ plan.leads }} Leads</li>
+                                            </ul>
+                                            <a href="{% url 'subscription:select_plan' plan.id %}" class="btn btn-primary w-100">Select Plan</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p>No monthly plans are currently available.</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Yearly Plans -->
+                    <div id="yearlyPlans" class="subscription-plans" style="display: none;">
+                        {% if yearly_plans %}
+                            <div class="row">
+                                {% for plan in yearly_plans %}
+                                <div class="col-md-{% if yearly_plans.count == 1 %}12{% elif yearly_plans.count == 2 %}6{% else %}4{% endif %} mb-3">
+                                    <div class="card h-100 {% if plan.plan_tier == 'professional' %}border-primary{% endif %}">
+                                        <div class="card-header {% if plan.plan_tier == 'professional' %}bg-primary text-white{% endif %}">
+                                            <h5 class="card-title mb-0">{{ plan.display_name }}</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <h3 class="price">${{ plan.price }}<span class="period">/year</span></h3>
+                                            <p class="monthly-equivalent text-success">${{ plan.get_monthly_display_price }}/month equivalent</p>
+                                            <ul class="feature-list">
+                                                <li>{{ plan.agents }} Agents</li>
+                                                <li>{{ plan.cleaners }} Cleaners</li>
+                                                <li>{{ plan.leads }} Leads</li>
+                                            </ul>
+                                            <a href="{% url 'subscription:select_plan' plan.id %}" class="btn btn-primary w-100">Select Plan</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p>No yearly plans are currently available.</p>
+                        {% endif %}
+                    </div>
                     {% endif %}
                 </div>
             </div>
@@ -66,4 +146,32 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Toggle between monthly and yearly plans
+    document.addEventListener('DOMContentLoaded', function() {
+        const monthlyToggle = document.getElementById('monthlyToggle');
+        const yearlyToggle = document.getElementById('yearlyToggle');
+        const monthlyPlans = document.getElementById('monthlyPlans');
+        const yearlyPlans = document.getElementById('yearlyPlans');
+        
+        if (monthlyToggle && yearlyToggle) {
+            monthlyToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    monthlyPlans.style.display = 'block';
+                    yearlyPlans.style.display = 'none';
+                }
+            });
+            
+            yearlyToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    monthlyPlans.style.display = 'none';
+                    yearlyPlans.style.display = 'block';
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

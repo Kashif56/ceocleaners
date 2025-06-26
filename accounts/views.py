@@ -1030,7 +1030,7 @@ def approval_pending(request):
     # Check if user has a business
     from django.conf import settings
 
-    print(f"DEBUG: {settings.DEBUG}")
+
     if not request.user.business_set.exists():
         messages.warning(request, 'You need to register a business first.')
         return redirect('accounts:register_business')
@@ -1044,11 +1044,28 @@ def approval_pending(request):
         return redirect('accounts:profile')
     from subscription.models import SubscriptionPlan
 
-    trial_plan = SubscriptionPlan.objects.filter(name__icontains='Trial').first()
+    # Get trial plan using the new plan_tier field
+    trial_plan = SubscriptionPlan.objects.filter(plan_tier='trial', is_active=True).first()
+    
+    # Get regular plans (excluding trial plans)
+    monthly_plans = SubscriptionPlan.objects.filter(
+        is_active=True, 
+        billing_cycle='monthly',
+        is_invite_only=False
+    ).exclude(plan_tier='trial').order_by('sort_order')
+    
+    yearly_plans = SubscriptionPlan.objects.filter(
+        is_active=True, 
+        billing_cycle='yearly',
+        is_invite_only=False
+    ).exclude(plan_tier='trial').order_by('sort_order')
     
     context = {
         'business': business,
-        'trial_plan': trial_plan
+        'trial_plan': trial_plan,
+        'monthly_plans': monthly_plans,
+        'yearly_plans': yearly_plans,
+        'has_plans': monthly_plans.exists() or yearly_plans.exists()
     }
     
     return render(request, 'accounts/approval_pending.html', context)

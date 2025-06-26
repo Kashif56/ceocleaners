@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import SubscriptionPlan, BusinessSubscription, UsageTracker, BillingHistory, Feature, Coupon, CouponUsage
+from .models import SubscriptionPlan, BusinessSubscription, UsageTracker, BillingHistory, Feature, Coupon, CouponUsage, SetupFee
 
 class FeatureAdmin(admin.ModelAdmin):
     list_display = ('display_name', 'name', 'is_active')
@@ -70,3 +70,4 @@ admin.site.register(CouponUsage, CouponUsageAdmin)
 admin.site.register(BusinessSubscription, BusinessSubscriptionAdmin)
 admin.site.register(UsageTracker, UsageTrackerAdmin)
 admin.site.register(BillingHistory, BillingHistoryAdmin)
+admin.site.register(SetupFee)

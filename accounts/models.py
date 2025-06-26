@@ -62,10 +62,16 @@ class Business(models.Model):
     def get_square_credentials(self):
         return self.square_credentials
     
+    def has_setup_fee(self):
+        from subscription.models import SetupFee
+
+        if SetupFee.objects.filter(business=self).exists():
+            return True
+        return False
 
     def has_availed_trial(self):
         from subscription.models import BusinessSubscription, SubscriptionPlan
-        plan = SubscriptionPlan.objects.filter(name__icontains='Trial').first()
+        plan = SubscriptionPlan.objects.filter(plan_tier='trial', is_active=True, is_invite_only=False).first()
         subscription = BusinessSubscription.objects.filter(
             business=self,
             plan=plan

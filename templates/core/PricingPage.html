@@ -50,8 +50,8 @@
         <div class="row g-4 justify-content-center">
             {% for plan in plans %}
             <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100" data-plan-type="{{ plan.billing_cycle }}">
-                <div class="card h-100 border-0 rounded-4 shadow-sm pricing-card bg-dark-surface-2 border-gradient {% if plan.name == 'Professional Plan' %}featured{% endif %}">
-                    {% if plan.name == 'Professional Plan' %}
+                <div class="card h-100 border-0 rounded-4 shadow-sm pricing-card bg-dark-surface-2 border-gradient {% if plan.plan_tier == 'professional' %}featured{% endif %}">
+                    {% if plan.plan_tier == 'professional' %}
                     <div class="position-absolute" style="top: 0; left: 0; right: 0; overflow: visible; text-align: center; z-index: 5;">
                         <div style="background-color: var(--bs-accent); color: white; display: inline-block; padding: 8px 16px; border-radius: 0 0 12px 12px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                             <i class="fas fa-star me-1"></i> Most Popular
@@ -63,21 +63,21 @@
                     {% endif %}
                         <div class="plan-header mb-4">
                             <div class="plan-icon mb-4 d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 70px; height: 70px; background: linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(33, 150, 243, 0.2) 100%);">
-                                {% if 'Starter' in plan.name %}
+                                {% if plan.plan_tier == 'starter' %}
                                 <i class="fas fa-rocket text-primary-color fs-3"></i>
-                                {% elif 'Professional' in plan.name %}
+                                {% elif plan.plan_tier == 'professional' %}
                                 <i class="fas fa-building text-primary-color fs-3"></i>
                                 {% else %}
                                 <i class="fas fa-crown text-primary-color fs-3"></i>
                                 {% endif %}
                             </div>
                             <h3 class="card-title h4 fw-bold mb-2 text-white">
-                                {% if 'Starter' in plan.name %}Starter{% elif 'Professional' in plan.name %}Professional{% else %}Enterprise{% endif %}
+                                {{ plan.display_name }}
                             </h3>
                             <p class="card-text text-dark-text-secondary">
-                                {% if 'Starter' in plan.name %}
+                                {% if plan.plan_tier == 'starter' %}
                                 Perfect for small cleaning businesses just getting started
-                                {% elif 'Professional' in plan.name %}
+                                {% elif plan.plan_tier == 'professional' %}
                                 Ideal for growing cleaning businesses with multiple teams
                                 {% else %}
                                 For established cleaning businesses with complex needs
@@ -164,7 +164,7 @@
                         </div>
                         
                         <!-- Button linked to the payment system -->
-                        <a href="{% url 'subscription:select_plan' plan.id %}" class="btn {% if 'Professional' in plan.name %}btn-accent{% else %}btn-outline-accent{% endif %} w-100 py-3 rounded-pill shadow-glow">
+                        <a href="{% url 'subscription:select_plan' plan.id %}" class="btn {% if plan.plan_tier == 'professional' %}btn-accent{% else %}btn-outline-accent{% endif %} w-100 py-3 rounded-pill shadow-glow">
                             Select Plan
                         </a>
                     </div>
@@ -194,9 +194,9 @@
                     <div class="comparison-cell text-center">Enterprise</div>
                 </div>
                 
-                {% with starter_plan=plans|filter_plans:'Starter'|first %}
-                {% with professional_plan=plans|filter_plans:'Professional'|first %}
-                {% with enterprise_plan=plans|filter_plans:'Enterprise'|first %}
+                {% with starter_plan=plans|filter_plans_by_tier:'starter'|first %}
+                {% with professional_plan=plans|filter_plans_by_tier:'professional'|first %}
+                {% with enterprise_plan=plans|filter_plans_by_tier:'enterprise'|first %}
                 
                 <!-- Usage Metrics -->
                 <div class="comparison-row">

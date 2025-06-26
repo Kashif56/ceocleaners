@@ -538,8 +538,8 @@
         <div class="row g-4 justify-content-center">
             {% for plan in plans %}
             <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100" data-plan-type="{{ plan.billing_cycle }}">
-                <div class="card h-100 border-0 rounded-4 shadow-sm pricing-card bg-dark-surface-2 border-gradient {% if plan.name == 'Professional Plan' %}featured{% endif %}">
-                    {% if plan.name == 'Professional Plan' %}
+                <div class="card h-100 border-0 rounded-4 shadow-sm pricing-card bg-dark-surface-2 border-gradient {% if plan.plan_tier == 'professional' %}featured{% endif %}">
+                    {% if plan.plan_tier == 'professional' %}
                     <div class="position-absolute" style="top: 0; left: 0; right: 0; overflow: visible; text-align: center; z-index: 5;">
                         <div style="background-color: var(--bs-accent); color: white; display: inline-block; padding: 8px 16px; border-radius: 0 0 12px 12px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                             <i class="fas fa-star me-1"></i> Most Popular
@@ -551,21 +551,21 @@
                     {% endif %}
                         <div class="plan-header mb-4">
                             <div class="plan-icon mb-4 d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 70px; height: 70px; background: linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(33, 150, 243, 0.2) 100%);">
-                                {% if 'Starter' in plan.name %}
+                                {% if plan.plan_tier == 'starter' %}
                                 <i class="fas fa-rocket text-primary-color fs-3"></i>
-                                {% elif 'Professional' in plan.name %}
+                                {% elif plan.plan_tier == 'professional' %}
                                 <i class="fas fa-building text-primary-color fs-3"></i>
                                 {% else %}
                                 <i class="fas fa-crown text-primary-color fs-3"></i>
                                 {% endif %}
                             </div>
                             <h3 class="card-title h4 fw-bold mb-2 text-white">
-                                {% if 'Starter' in plan.name %}Starter{% elif 'Professional' in plan.name %}Professional{% else %}Enterprise{% endif %}
+                                {{ plan.display_name }}
                             </h3>
                             <p class="card-text text-dark-text-secondary">
-                                {% if 'Starter' in plan.name %}
+                                {% if plan.plan_tier == 'starter' %}
                                 Perfect for small cleaning businesses just getting started
-                                {% elif 'Professional' in plan.name %}
+                                {% elif plan.plan_tier == 'professional' %}
                                 Ideal for growing cleaning businesses with multiple teams
                                 {% else %}
                                 For established cleaning businesses with complex needs
@@ -633,7 +633,7 @@
                         </div>
                         
                         <!-- Button linked to the payment system -->
-                        <a href="{% url 'subscription:select_plan' plan.id %}" class="btn {% if 'Professional' in plan.name %}btn-accent{% else %}btn-outline-accent{% endif %} w-100 py-3 rounded-pill shadow-glow">
+                        <a href="{% url 'subscription:select_plan' plan.id %}" class="btn {% if plan.plan_tier == 'professional' %}btn-accent{% else %}btn-outline-accent{% endif %} w-100 py-3 rounded-pill shadow-glow">
                             Select Plan
                         </a>
                     </div>
@@ -732,18 +732,39 @@
     </div>
 </section>
 
+{% if user.is_authenticated and business_subscriptions_count < 3 %}
+<!-- Floating Demo Button -->
+<div class="position-fixed" style="bottom: 30px; right: 30px; z-index: 1000;">
+    <button 
+        class="btn btn-lg btn-accent shadow-lg d-flex align-items-center justify-content-center" 
+        data-cal-link="kashif.m/cleaningbiz-demo"
+        data-cal-namespace="cleaningbiz-demo"
+        data-cal-config='{"layout":"month_view","theme":"auto"}'
+        onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.3)';"
+        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 20px rgba(0,0,0,0.25)';"
+    >
+        <i class="fas fa-calendar-check me-2"></i>
+        <span>Book Your Demo</span>
+    </button>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block scripts %}
-<script src="https://chatbot-widget-khaki.vercel.app/chatbot-widget.js"></script>
+<!-- Conditionally load either Cal.com or chatbot widget -->
+{% if user.is_authenticated and business_subscriptions_count < 3 %}
+<!-- Cal element-click embed code begins -->
+<script type="text/javascript">
+  (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; if(typeof namespace === "string"){cal.ns[namespace] = cal.ns[namespace] || api;p(cal.ns[namespace], ar);p(cal, ["initNamespace", namespace]);} else p(cal, ar); return;} p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
+Cal("init", "cleaningbiz-demo", {origin:"https://cal.com"});
+  
+  Cal.ns["cleaningbiz-demo"]("ui", {"hideEventTypeDetails":false,"layout":"month_view"});
+</script>
+{% endif %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-
-        ChatbotWidget.init({
-            businessId: 'BUS-1143',
-            botName: 'Sarah',
-            initialMessage: 'Hello I am Sarah, how can I help you today?',
-        });
+        
 
         // Initialize toggle functionality
         const pricingToggle = document.getElementById('pricing-toggle');

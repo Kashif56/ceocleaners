@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load timezone_tags %}
 
 {% block title %}Create Booking{% endblock %}
 
@@ -28,6 +29,7 @@
             <div class="card-body px-5 py-5">
                 <form method="post" action="{% url 'bookings:create_booking' %}" id="booking-form">
                     {% csrf_token %}
+                  
 
                     <!-- Step 1: Customer Information -->
                     <div class="form-step" id="step1">
@@ -114,11 +116,12 @@
                         <h5 class="mb-4"><i class="fas fa-broom me-2"></i>Service Details</h5>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="cleaningDate" class="form-label">Cleaning Date</label>
+                                <label for="cleaningDate" class="form-label">Cleaning Date <small class="text-muted">({{ business_timezone }})</small></label>
                                 <input type="date" class="form-control" id="cleaningDate" name="cleaningDate" required min="{{ today|date:'Y-m-d' }}">
+                                <input type="hidden" id="businessTimezone" value="{{ business_timezone }}">
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="startTime" class="form-label">Start Time</label>
+                                <label for="startTime" class="form-label">Start Time <small class="text-muted">({{ business_timezone }})</small></label>
                                 <select class="form-control form-select" id="startTime" name="startTime" required>
                                     <option value="">Select Time</option>
                                     <option value="06:00">6:00 AM</option>
@@ -728,6 +731,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('cleaningDate').setAttribute('min', today);
     
+    // Get business timezone
+    const businessTimezone = document.getElementById('businessTimezone').value || 'UTC';
+    
     // If the current date is already set and it's before today, clear it
     const cleaningDateInput = document.getElementById('cleaningDate');
     if (cleaningDateInput.value && cleaningDateInput.value < today) {
@@ -746,10 +752,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const altSlotsList = document.getElementById('alt-slots-list');
     const availableCleanersContainer = document.getElementById('available-cleaners-container');
     const selectedCleaner = document.getElementById('selectedCleaner');
-
+    
     cleaningDate.addEventListener('change', checkAvailability);
     startTime.addEventListener('change', checkAvailability);
-
+    
     function checkAvailability() {
         const date = cleaningDate.value;
         const time = startTime.value;
@@ -764,7 +770,8 @@ document.addEventListener('DOMContentLoaded', function() {
         availabilityAlert.className = 'alert alert-info mt-2';
         availabilityMessage.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Checking availability...';
         
-        const url = '/api/check-availability/?date=' + date + '&time=' + time;
+        // Make API request with timezone information
+        const url = `/api/check-availability/?date=${date}&time=${time}&timezone=${businessTimezone}`;
 
         fetch(url)
             .then(response => response.json())
@@ -778,7 +785,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }, 3000);
                     alternativeSlots.style.display = 'none';
                     availableCleanersContainer.style.display = 'block';
-                    selectedCleaner.innerHTML = '';
+                    selectedCleaner.innerHTML = '<option value="">Select a cleaner</option>';
                     data.cleaners.forEach(cleaner => {
                         const option = document.createElement('option');
                         option.value = cleaner.id;
@@ -852,7 +859,10 @@ document.addEventListener('DOMContentLoaded', function() {
             hours = parseInt(hours, 10) + 12;
         }
         
-        return `${hours.padStart(2, '0')}:${minutes}`;
+        // Convert hours to string before using padStart
+        hours = String(hours).padStart(2, '0');
+        
+        return `${hours}:${minutes}`;
     }
 });
 </script>

@@ -1,6 +1,8 @@
 from django.shortcuts import redirect
 from django.urls import resolve, reverse
 from django.contrib import messages
+from django.utils import timezone
+import pytz
 
 
 class BusinessApprovalMiddleware:
@@ -32,7 +34,7 @@ class BusinessApprovalMiddleware:
         # Also skip if URL is exempt or is admin URL
         try:
             current_url = resolve(request.path_info).url_name
-            if current_url in exempt_urls or request.path.startswith('/admin/'):
+            if current_url in exempt_urls or request.path.startswith('/admin'):
                 return self.get_response(request)
         except:
             # If URL can't be resolved, just continue
@@ -172,3 +174,42 @@ class CleanerAccessMiddleware:
             # Use absolute hardcoded redirect as last resort
             cleaner_url = f'/cleaners/{cleaner_id}/'
             return redirect(cleaner_url)
+
+
+class TimezoneMiddleware:
+    """
+    Middleware to set the timezone for each request based on the business's timezone setting.
+    For business users, it uses their business timezone.
+    For cleaner users, it uses their associated business's timezone.
+    For unauthenticated users, it defaults to UTC.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+        
+    def __call__(self, request):
+        # Default timezone is UTC
+        user_timezone = pytz.UTC
+        
+        if request.user.is_authenticated:
+            # For business users
+            if hasattr(request.user, 'business_set') and request.user.business_set.exists():
+                business = request.user.business_set.first()
+                user_timezone = business.get_timezone()
+            
+            # For cleaner users
+            elif hasattr(request.user, 'cleaner_profile') and hasattr(request.user.cleaner_profile, 'business'):
+                business = request.user.cleaner_profile.business
+                user_timezone = business.get_timezone()
+        
+        # Set the timezone for this thread/request
+        timezone.activate(user_timezone)
+        
+        # Store timezone in request for template context
+        request.timezone = user_timezone
+        
+        response = self.get_response(request)
+        
+        # Reset to default timezone after the response is generated
+        timezone.deactivate()
+        
+        return response

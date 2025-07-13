@@ -15,6 +15,9 @@
         <a href="{% url 'admin_dashboard:business_analytics' business.id %}" class="btn btn-outline-info me-2">
             <i class="fas fa-chart-line me-1"></i> Analytics
         </a>
+        <a href="{% url 'admin_dashboard:business_billing_history' business.id %}" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-file-invoice-dollar me-1"></i> Billing History
+        </a>
         <div class="btn-group">
             <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="fas fa-cog me-1"></i> Actions
@@ -61,10 +64,12 @@
     </div>
 </div>
 
+
+
 <div class="row g-4">
     <!-- Business Information -->
     <div class="col-lg-4">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card border-0 shadow-sm">
             <div class="card-body p-4">
                 <div class="d-flex align-items-center mb-4">
                     <div class="flex-shrink-0 rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 20px;">
@@ -135,6 +140,145 @@
                 </div>
             </div>
         </div>
+
+        <!-- Business Statistics -->
+        <div class="d-flex align-items-center flex-column mt-3">
+            <!-- Bookings Stats -->
+            <div class="col-md-12">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="flex-shrink-0 rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 20px;">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div class="ms-3">
+                                <h5 class="mb-0">Bookings</h5>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="p-3 bg-primary-subtle text-primary rounded">
+                                    <p class="text-muted mb-1 small">Total</p>
+                                    <h3 class="mb-0">{{ business.bookings_stats.total }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-info-subtle text-info rounded">
+                                    <p class="text-muted mb-1 small">Upcoming</p>
+                                    <h3 class="mb-0">{{ business.bookings_stats.upcoming }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-warning-subtle text-warning rounded">
+                                    <p class="text-muted mb-1 small">Awaiting Payment</p>
+                                    <h3 class="mb-0">{{ business.bookings_stats.awaiting_payment }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-secondary-subtle text-secondary rounded">
+                                    <p class="text-muted mb-1 small">Past</p>
+                                    <h3 class="mb-0">{{ business.bookings_stats.past }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-danger-subtle text-danger rounded">
+                                    <p class="text-muted mb-1 small">Cancelled</p>
+                                    <h3 class="mb-0">{{ business.bookings_stats.cancelled }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-success-subtle text-success rounded">
+                                    <p class="text-muted mb-1 small">Revenue</p>
+                                    <h3 class="mb-0">${{ business.bookings_stats.revenue }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Leads Stats -->
+            <div class="col-md-12">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="flex-shrink-0 rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 20px;">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                            <div class="ms-3">
+                                <h5 class="mb-0">Leads</h5>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="p-3 bg-primary-subtle text-primary rounded">
+                                    <p class="text-muted mb-1 small">Total</p>
+                                    <h3 class="mb-0">{{ business.leads_stats.total }}</h3>
+                                </div>
+                            </div>
+            
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Invoices Stats -->
+            <div class="col-md-12">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="flex-shrink-0 rounded-circle bg-warning-subtle text-warning d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 20px;">
+                                <i class="fas fa-file-invoice-dollar"></i>
+                            </div>
+                            <div class="ms-3">
+                                <h5 class="mb-0">Invoices</h5>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="p-3 bg-primary-subtle text-primary rounded">
+                                    <p class="text-muted mb-1 small">Total</p>
+                                    <h3 class="mb-0">{{ business.invoices_stats.total }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-success-subtle text-success rounded">
+                                    <p class="text-muted mb-1 small">Paid</p>
+                                    <h3 class="mb-0">{{ business.invoices_stats.paid }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-warning-subtle text-warning rounded">
+                                    <p class="text-muted mb-1 small">Pending</p>
+                                    <h3 class="mb-0">{{ business.invoices_stats.pending }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-info-subtle text-info rounded">
+                                    <p class="text-muted mb-1 small">Authorized</p>
+                                    <h3 class="mb-0">{{ business.invoices_stats.authorized }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-light rounded">
+                                    <p class="text-muted mb-1 small">Total Amount</p>
+                                    <h3 class="mb-0">${{ business.invoices_stats.total_amount }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-light rounded">
+                                    <p class="text-muted mb-1 small">Paid Amount</p>
+                                    <h3 class="mb-0">${{ business.invoices_stats.paid_amount }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
     <!-- Additional Information (only shown if business is approved and active) -->
@@ -149,8 +293,13 @@
                 </button>
             </div>
             <div class="card-body">
+                <!-- Active Subscriptions -->
+                <h6 class="border-bottom pb-2 mb-3 d-flex align-items-center">
+                    <i class="fas fa-check-circle me-2 text-success"></i>
+                    Active Subscriptions
+                </h6>
                 {% if business.all_subscriptions %}
-                <div class="table-responsive">
+                <div class="table-responsive mb-4">
                     <table class="table table-hover">
                         <thead>
                             <tr>
@@ -167,7 +316,11 @@
                             {% for subscription in business.all_subscriptions %}
                             <tr>
                                 <td>
-                                    <strong>{{ subscription.plan.name }}</strong>
+                                    <strong>
+                                        <a href="{% url 'admin_dashboard:subscription_detail' subscription.id %}">
+                                            {{ subscription.plan.name }}
+                                        </a>
+                                    </strong>
                                     {% if subscription == business.active_subscription %}
                                     <span class="badge bg-primary ms-1">Primary</span>
                                     {% endif %}
@@ -175,8 +328,12 @@
                                     <span class="badge bg-warning ms-1">Trial</span>
                                     {% endif %}
                                 </td>
-                                <td><span class="badge bg-{{ subscription.status|yesno:'success,danger' }}-subtle text-{{ subscription.status|yesno:'success,danger' }}">{{ subscription.status|title }}</span></td>
-                                <td>{{ subscription.plan.billing_cycle|title }}</td>
+                                <td>
+                                    <span class="badge bg-{% if subscription.status == 'active' %}success{% elif subscription.status == 'trialing' %}warning{% elif subscription.status == 'past_due' %}danger{% else %}secondary{% endif %}-subtle text-{% if subscription.status == 'active' %}success{% elif subscription.status == 'trialing' %}warning{% elif subscription.status == 'past_due' %}danger{% else %}secondary{% endif %}">
+                                        {{ subscription.status|title }}
+                                    </span>
+                                </td>
+                                <td>{{ subscription.plan.get_billing_cycle_display }}</td>
                                 <td>{{ subscription.start_date|date:"M d, Y" }}</td>
                                 <td>{{ subscription.end_date|date:"M d, Y"|default:"N/A" }}</td>
                                 <td>${{ subscription.plan.price }}</td>
@@ -205,9 +362,78 @@
                     </table>
                 </div>
                 {% else %}
-                <div class="alert alert-warning mb-0">
+                <div class="alert alert-warning mb-3">
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     This business does not have any active subscriptions.
+                </div>
+                {% endif %}
+                
+                <!-- Future Subscription Plan -->
+                {% if business.future_subscription %}
+                <h6 class="border-bottom pb-2 mb-3 d-flex align-items-center">
+                    <i class="fas fa-calendar-alt me-2 text-info"></i>
+                    Future Subscription Plan
+                </h6>
+                <div class="alert alert-info mb-4">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-arrow-right fa-2x me-3"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <p class="mb-1"><strong>Plan Change Scheduled</strong></p>
+                            <p class="mb-1">
+                                This business will be automatically switched from 
+                                <strong>{{ business.future_subscription.current_subscription.plan.name }}</strong> to 
+                                <strong>{{ business.future_subscription.next_plan.name }}</strong>
+                                on {{ business.future_subscription.effective_date|date:"F j, Y" }}.
+                            </p>
+                            <p class="mb-0 small text-muted">
+                                New price: ${{ business.future_subscription.next_plan.price }}/{{ business.future_subscription.next_plan.billing_cycle }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Previous Subscriptions -->
+                {% if business.previous_subscriptions %}
+                <h6 class="border-bottom pb-2 mb-3 d-flex align-items-center">
+                    <i class="fas fa-history me-2 text-secondary"></i>
+                    Previous Subscriptions
+                </h6>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Plan</th>
+                                <th>Status</th>
+                                <th>Billing Cycle</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for subscription in business.previous_subscriptions %}
+                            <tr class="text-muted">
+                                <td>
+                                    <a href="{% url 'admin_dashboard:subscription_detail' subscription.id %}" class="text-decoration-none text-muted">
+                                        {{ subscription.plan.name }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary-subtle text-secondary">
+                                        {{ subscription.status|title }}
+                                    </span>
+                                </td>
+                                <td>{{ subscription.plan.get_billing_cycle_display }}</td>
+                                <td>{{ subscription.start_date|date:"M d, Y" }}</td>
+                                <td>{{ subscription.end_date|date:"M d, Y"|default:"N/A" }}</td>
+                                <td>${{ subscription.plan.price }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
                 {% endif %}
             </div>

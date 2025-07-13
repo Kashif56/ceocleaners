@@ -175,7 +175,7 @@
                                         <!-- Payment and Actions Column -->
                                         <div class="col-md-4 bg-light rounded-end">
                                             <div class="d-flex flex-column justify-content-between h-100 p-4">
-                                                <!-- Payment information with clear breakdown -->
+                                                <!-- Payment information with clear breakdown
                                                 <div class="price-tag mb-4">
                                                     <div class="card border-0 shadow-sm mb-3">
                                                         <div class="card-header bg-primary text-white py-2">
@@ -187,28 +187,14 @@
                                                                 <span class="fw-bold">${{ job.booking.totalPrice }}</span>
                                                             </div>
                                                             
-                                                            {% if job.cleaner.business.cleaner_pay_percentage %}
-                                                                {% with cleaner_percentage=job.cleaner.business.cleaner_pay_percentage %}
-                                                                    {% with cleaner_pay=job.booking.totalPrice|multiply:cleaner_percentage|divide:100 %}
-                                                                        <div class="d-flex justify-content-between text-muted small mb-3">
-                                                                            <span>Business Fee ({{ 100|subtract:cleaner_percentage }}%):</span>
-                                                                            <span>-${{ job.booking.totalPrice|multiply:100|subtract:cleaner_percentage|divide:100|floatformat:2 }}</span>
-                                                                        </div>
-                                                                        <div class="d-flex justify-content-between fw-bold text-success">
-                                                                            <span>Your Payout ({{ cleaner_percentage }}%):</span>
-                                                                            <span>${{ cleaner_pay|floatformat:2 }}</span>
-                                                                        </div>
-                                                                    {% endwith %}
-                                                                {% endwith %}
-                                                            {% else %}
-                                                                <div class="d-flex justify-content-between fw-bold text-success">
-                                                                    <span>Your Payout:</span>
-                                                                    <span>${{ job.booking.totalPrice }}</span>
-                                                                </div>
-                                                            {% endif %}
+
+                                                            <div class="d-flex justify-content-between fw-bold text-success">
+                                                                <span>Your Payout:</span>
+                                                                <span>${{ job.booking.totalPrice }}</span>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
+                                                </div> -->
                                                 
                                                 <!-- Action buttons -->
                                                 <div class="d-grid gap-3">

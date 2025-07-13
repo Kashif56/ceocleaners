@@ -1,0 +1,193 @@
+{% extends 'admin_dashboard/base.html' %}
+
+{% block title %}Billing Record #{{ billing.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-0">Billing Record #{{ billing.id }}</h1>
+            <p class="text-muted">Detailed information about this billing record</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'admin_dashboard:billing_history_list' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i> Back to Billing History
+            </a>
+            {% if billing.invoice_url %}
+            <a href="{{ billing.invoice_url }}" target="_blank" class="btn btn-primary">
+                <i class="fas fa-file-invoice me-2"></i> View Invoice
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Breadcrumb Navigation -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'admin_dashboard:index' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'admin_dashboard:billing_history_list' %}">Billing History</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Billing Record #{{ billing.id }}</li>
+        </ol>
+    </nav>
+    
+    <div class="row">
+        <!-- Billing Information -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Billing Information</h5>
+                    <span class="badge bg-{% if billing.status == 'paid' %}success{% elif billing.status == 'pending' %}warning{% elif billing.status == 'failed' %}danger{% elif billing.status == 'refunded' %}info{% else %}secondary{% endif %} py-2 px-3">
+                        {{ billing.get_status_display }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Amount</label>
+                                <p class="form-control-plaintext fw-bold">${{ billing.amount }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Billing Date</label>
+                                <p class="form-control-plaintext">{{ billing.billing_date|date:"F d, Y H:i" }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Created At</label>
+                                <p class="form-control-plaintext">{{ billing.created_at|date:"F d, Y H:i" }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Last Updated</label>
+                                <p class="form-control-plaintext">{{ billing.updated_at|date:"F d, Y H:i" }}</p>
+                            </div>
+                            {% if billing.square_invoice_id %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Square Invoice ID</label>
+                                <p class="form-control-plaintext">{{ billing.square_invoice_id }}</p>
+                            </div>
+                            {% endif %}
+                            {% if billing.square_payment_id %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Square Payment ID</label>
+                                <p class="form-control-plaintext">{{ billing.square_payment_id }}</p>
+                            </div>
+                            {% endif %}
+                            {% if billing.stripe_invoice_id %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Stripe Invoice ID</label>
+                                <p class="form-control-plaintext">{{ billing.stripe_invoice_id }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Invoice Details -->
+                    {% if billing.details %}
+                    <div class="mt-4">
+                        <h6 class="mb-3">Invoice Details</h6>
+                        <div class="card bg-light">
+                            <div class="card-body p-3">
+                                <pre class="mb-0"><code>{{ billing.details|pprint }}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Related Information -->
+        <div class="col-lg-4">
+            <!-- Business Information -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Business Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="flex-shrink-0 rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 20px;">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="mb-0">{{ business.businessName }}</h6>
+                            <p class="text-muted small mb-0">ID: {{ business.businessId }}</p>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Status</label>
+                        <p class="form-control-plaintext">
+                            {% if business.isActive %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inactive</span>
+                            {% endif %}
+                            
+                            {% if business.isApproved %}
+                                <span class="badge bg-success">Approved</span>
+                            {% elif business.isRejected %}
+                                <span class="badge bg-danger">Rejected</span>
+                            {% else %}
+                                <span class="badge bg-warning">Pending Approval</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Contact</label>
+                        <p class="form-control-plaintext">{{ business.phone|default:"Not provided" }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Address</label>
+                        <p class="form-control-plaintext">{{ business.address|default:"Not provided" }}</p>
+                    </div>
+                    <div class="d-grid">
+                        <a href="{% url 'admin_dashboard:business_detail' business.id %}" class="btn btn-outline-primary">
+                            <i class="fas fa-external-link-alt me-2"></i> View Business Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Subscription Information -->
+            {% if subscription %}
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Subscription Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Plan</label>
+                        <p class="form-control-plaintext fw-bold">{{ subscription.plan.name }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Status</label>
+                        <p class="form-control-plaintext">
+                            <span class="badge bg-{% if subscription.status == 'active' %}success{% elif subscription.status == 'cancelled' %}danger{% elif subscription.status == 'past_due' %}warning{% elif subscription.status == 'trialing' %}info{% else %}secondary{% endif %}">
+                                {{ subscription.get_status_display }}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Start Date</label>
+                        <p class="form-control-plaintext">{{ subscription.start_date|date:"F d, Y" }}</p>
+                    </div>
+                    {% if subscription.end_date %}
+                    <div class="mb-3">
+                        <label class="form-label text-muted">End Date</label>
+                        <p class="form-control-plaintext">{{ subscription.end_date|date:"F d, Y" }}</p>
+                    </div>
+                    {% endif %}
+                    <div class="d-grid">
+                        <a href="{% url 'admin_dashboard:subscription_detail' subscription.id %}" class="btn btn-outline-primary">
+                            <i class="fas fa-external-link-alt me-2"></i> View Subscription Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

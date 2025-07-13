@@ -194,11 +194,22 @@ AI Agent Behavior Guidelines:
 
 
 
-def convert_date_str_to_date(date_str):
+def convert_date_str_to_date(date_str, business=None):
+    # Get the business timezone if provided, otherwise use Chicago timezone as default
+    timezone_str = 'America/Chicago'
+    if business:
+        try:
+            timezone_str = business.timezone
+        except:
+            pass
+    
+    # Get current time in the business timezone
+    business_time = datetime.now().astimezone(pytz.timezone(timezone_str))
+    
     SYSTEM_PROMPT = f"""
     You are a helpful assistant that can convert any date and time format to a standardized datetime object.
     
-    Current time: {current_time}
+    Current time in {timezone_str}: {business_time}
 
     Takes any human readable date string or any datetime format string and convert it to datetime object.
     Return only single datetime object in string format (YYYY-MM-DD HH:MM:SS).
@@ -208,7 +219,7 @@ def convert_date_str_to_date(date_str):
     - Handle both US (M/D/YYYY) and international (D/M/YYYY) date formats intelligently
     - Support natural language dates including ordinals (e.g., "7th of April, 2025")
     - Parse relative dates like "tomorrow", "next week", "in 3 days"
-    - Always return in YYYY-MM-DD HH:MM:SS format
+    - Always return in YYYY-MM-DD HH:MM:SS format in {timezone_str} timezone
     - Do not include any explanations, only return the formatted datetime
 
     example:
@@ -251,7 +262,7 @@ def convert_date_str_to_date(date_str):
     
     response_text = response.choices[0].message.content.strip()
 
-    print(f"[UTIL] Converted {date_str} to datetime object: {response_text}")
+    print(f"[UTIL] Converted {date_str} to datetime object: {response_text} in timezone {timezone_str}")
 
     return response_text
 

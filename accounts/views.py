@@ -195,13 +195,16 @@ def register_business(request):
         messages.warning(request, 'You already have a registered business.')
         return redirect('accounts:profile')
     
+    # Import timezone choices
+    from .timezone_utils import get_timezone_choices
+    timezone_choices = get_timezone_choices()
 
     if request.method == 'POST':
         businessName = request.POST.get('businessName')
         phone = request.POST.get('phone')
         address = request.POST.get('address')
-        cleaner_pay_percentage = request.POST.get('cleaner_pay_percentage')
         job_assignment = request.POST.get('job_assignment')
+        selected_timezone = request.POST.get('timezone', 'UTC')
         
         # Validate required fields
         if not all([businessName, phone, address]):
@@ -215,8 +218,8 @@ def register_business(request):
                 businessName=businessName,
                 phone=phone,
                 address=address,
-                cleaner_pay_percentage=cleaner_pay_percentage,
                 job_assignment=job_assignment,
+                timezone=selected_timezone,
                 isActive=False,  # Set to False by default
                 isApproved=False  # Set to False by default
             )
@@ -237,9 +240,11 @@ def register_business(request):
             raise Exception(str(e))
     
     from .models import JOB_ASSIGNMENT_OPTIONS
+    from .timezone_utils import get_timezone_choices
     
     context = {
-        'job_assignment_options': JOB_ASSIGNMENT_OPTIONS
+        'job_assignment_options': JOB_ASSIGNMENT_OPTIONS,
+        'timezone_choices': get_timezone_choices()
     }
     
     return render(request, 'accounts/register_business.html', context)
@@ -256,9 +261,9 @@ def edit_business(request):
         businessName = request.POST.get('businessName')
         phone = request.POST.get('phone')
         address = request.POST.get('address')
-        cleaner_pay_percentage = request.POST.get('cleaner_pay_percentage')
         job_assignment = request.POST.get('job_assignment')
         email = request.POST.get('email')
+        selected_timezone = request.POST.get('timezone', 'UTC')
         
         if not all([businessName, phone, address]):
             messages.error(request, 'All fields are required.')
@@ -268,8 +273,8 @@ def edit_business(request):
             business.businessName = businessName
             business.phone = phone
             business.address = address
-            business.cleaner_pay_percentage = cleaner_pay_percentage
             business.job_assignment = job_assignment
+            business.timezone = selected_timezone
             business.user.email = email
             business.user.save()
             business.save()
@@ -282,10 +287,12 @@ def edit_business(request):
             raise Exception(str(e))
     
     from .models import JOB_ASSIGNMENT_OPTIONS
+    from .timezone_utils import get_timezone_choices
     
     context = {
         'business': business,
-        'job_assignment_options': JOB_ASSIGNMENT_OPTIONS
+        'job_assignment_options': JOB_ASSIGNMENT_OPTIONS,
+        'timezone_choices': get_timezone_choices()
     }
     
     return render(request, 'accounts/edit_business.html', context)
@@ -1030,7 +1037,7 @@ def approval_pending(request):
     # Check if user has a business
     from django.conf import settings
 
-    print(f"DEBUG: {settings.DEBUG}")
+
     if not request.user.business_set.exists():
         messages.warning(request, 'You need to register a business first.')
         return redirect('accounts:register_business')
@@ -1044,11 +1051,28 @@ def approval_pending(request):
         return redirect('accounts:profile')
     from subscription.models import SubscriptionPlan
 
-    trial_plan = SubscriptionPlan.objects.filter(name__icontains='Trial').first()
+    # Get trial plan using the new plan_tier field
+    trial_plan = SubscriptionPlan.objects.filter(plan_tier='trial', is_active=True).first()
+    
+    # Get regular plans (excluding trial plans)
+    monthly_plans = SubscriptionPlan.objects.filter(
+        is_active=True, 
+        billing_cycle='monthly',
+        is_invite_only=False
+    ).exclude(plan_tier='trial').order_by('sort_order')
+    
+    yearly_plans = SubscriptionPlan.objects.filter(
+        is_active=True, 
+        billing_cycle='yearly',
+        is_invite_only=False
+    ).exclude(plan_tier='trial').order_by('sort_order')
     
     context = {
         'business': business,
-        'trial_plan': trial_plan
+        'trial_plan': trial_plan,
+        'monthly_plans': monthly_plans,
+        'yearly_plans': yearly_plans,
+        'has_plans': monthly_plans.exists() or yearly_plans.exists()
     }
     
     return render(request, 'accounts/approval_pending.html', context)

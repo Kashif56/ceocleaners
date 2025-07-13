@@ -44,16 +44,22 @@ def add_integration(request):
             'is_active': True
         }
 
+        # Get headers from form if provided
+        headers_json = request.POST.get('headers_json', '{}')
+        try:
+            headers = json.loads(headers_json)
+        except json.JSONDecodeError:
+            headers = {}
+            
         if platform_type == 'direct_api':
             integration_data.update({
                 'base_url': request.POST.get('api_url'),
-                'auth_type': 'token',  # Default to token auth for now
-                'auth_data': {'token': request.POST.get('api_key')}
+                'headers': headers
             })
         else:  # workflow platform
             integration_data.update({
                 'webhook_url': request.POST.get('webhook_url'),
-                'auth_type': 'none'
+                'headers': headers
             })
 
         # Create new integration
@@ -246,7 +252,9 @@ def test_integration(request, platform_id):
             "bathrooms": 2,
             "squareFeet": 2000,
             "serviceType": "Deep Clean",
-            "cleaningDateTime": datetime.now() + timedelta(days=7),
+            "cleaningDate": datetime.now() + timedelta(days=7),
+            "startTime": datetime.now(),
+            "endTime": datetime.now() + timedelta(hours=1),
             "totalPrice": "299.99",
             "tax": "24.99",
             "addonDishes": True,
@@ -298,9 +306,9 @@ def send_booking_data_to_integration(booking_data, integration):
 
         if integration.platform_type == 'workflow':
             # Convert datetime to string format
-            cleaning_date = booking_data["cleaningDateTime"].date().isoformat()
-            cleaning_time = booking_data["cleaningDateTime"].time().strftime("%H:%M:%S")
-            end_time = (booking_data["cleaningDateTime"] + timedelta(minutes=60)).time().strftime("%H:%M:%S")
+            cleaning_date = booking_data["cleaningDate"].date().isoformat()
+            cleaning_time = booking_data["startTime"].strftime("%H:%M:%S")
+            end_time = (booking_data["startTime"] + timedelta(minutes=60)).strftime("%H:%M:%S")
 
             # For workflow platforms, use the default payload structure
             payload = {
@@ -336,10 +344,17 @@ def send_booking_data_to_integration(booking_data, integration):
                 "addonGarageSweeping": booking_data["addonGarageSweeping"]
             }
             
+            # Prepare headers
+            headers = {"Content-Type": "application/json"}
+            
+            # Add custom headers from integration if available
+            if integration.headers:
+                headers.update(integration.headers)
+                
             response = requests.post(
                 integration.webhook_url,
                 json=payload,
-                headers={"Content-Type": "application/json"},
+                headers=headers,
                 timeout=30
             )
 
@@ -361,11 +376,16 @@ def send_booking_data_to_integration(booking_data, integration):
         else:  # direct_api
             from automation.webhooks import create_mapped_payload
             payload = create_mapped_payload(booking_data, integration)
-            print("Payload:", payload)
+            
             
             headers = {"Content-Type": "application/json"}
-            if integration.auth_type == 'token' and integration.auth_data.get('token'):
-                headers['Authorization'] = f"Bearer {integration.auth_data['token']}"
+            
+            # Add custom headers from integration if available
+            if integration.headers:
+                headers.update(integration.headers)
+            
+            print("Payload:", payload)
+            print("Headers:", headers)
             
             response = requests.post(
                 integration.base_url,
@@ -395,6 +415,9 @@ def send_booking_data_to_integration(booking_data, integration):
         })
         
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print("Test Integration Error:", error_details)  # Log the full error
         # Log failed integration
         log_integration_activity(
             platform=integration,
@@ -423,6 +446,16 @@ def edit_integration(request, platform_id):
         platform.name = name
         platform.platform_type = platform_type
         platform.is_active = is_active
+        
+        # Get headers from form if provided
+        headers_json = request.POST.get('headers_json', '{}')
+        try:
+            headers = json.loads(headers_json)
+        except json.JSONDecodeError:
+            headers = {}
+            
+        # Update headers
+        platform.headers = headers
         
         # Update type-specific fields
         if platform_type == 'direct_api':

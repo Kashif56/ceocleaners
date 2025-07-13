@@ -8,6 +8,7 @@ import json
 import threading
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware, is_naive
+import os
 
 from rest_framework import status
 from .models import *
@@ -22,6 +23,7 @@ from retell_agent.models import RetellAgent
 from subscription.models import UsageTracker
 from retell import Retell
 from django.conf import settings
+from openai import OpenAI
 
 @csrf_exempt
 def thumbtack_webhook(request, secretKey):
@@ -262,8 +264,13 @@ def create_mapped_payload(booking_data, integration):
     if isinstance(booking_data["cleaningDate"], datetime):
         booking_data = dict(booking_data)  # Create a copy to avoid modifying the original
         booking_data["cleaningDate"] = booking_data["cleaningDate"].date().isoformat()
-        booking_data["startTime"] = booking_data["startTime"].time().strftime("%H:%M:%S")
-        booking_data["endTime"] = (booking_data["startTime"] + timedelta(minutes=60)).time().strftime("%H:%M:%S")
+        # Store the datetime object before converting to string
+        start_time_dt = booking_data["startTime"]
+        # Calculate end time using the datetime object
+        end_time_dt = start_time_dt + timedelta(minutes=60)
+        # Convert to string format after calculations
+        booking_data["startTime"] = start_time_dt.strftime("%H:%M:%S")
+        booking_data["endTime"] = end_time_dt.strftime("%H:%M:%S")
 
     # Apply mappings
     for mapping in mappings:
@@ -295,6 +302,130 @@ def create_mapped_payload(booking_data, integration):
             
     return payload
 
+
+
+@csrf_exempt
+def chatgpt_analysis_webhook(request, secretKey):
+    """Handle incoming JSON data, analyze it with ChatGPT, and store structured response in Lead model"""
+    # Verify secret key
+    verifySecretKey = ApiCredential.objects.filter(secretKey=secretKey)
+    if not verifySecretKey.exists():
+        return JsonResponse({'message': 'Secret Key Not Verified'}, status=401)
+
+    business = verifySecretKey.first().business
+
+    if request.method == 'POST':
+        try:
+            # Parse incoming JSON data
+            data = json.loads(request.body)
+            print(f"Received data for ChatGPT analysis: {data}")
+            
+            # Initialize OpenAI client
+            client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+            
+            # Define the system prompt for analysis
+            system_prompt = """
+            You are a data extraction assistant. Your task is to analyze the provided JSON data 
+            and extract structured information for a cleaning service lead. Extract the following fields 
+            if available (leave blank if not found):
+            
+            1. name: Full name of the customer
+            2. email: Customer's email address
+            3. phone_number: Customer's phone number
+            4. bedrooms: Number of bedrooms (numeric)
+            5. bathrooms: Number of bathrooms (numeric)
+            6. squareFeet: Size of the property in square feet (numeric)
+            7. type_of_cleaning: Type of cleaning service requested
+            8. address1: Street address
+            9. address2: Apartment/unit number or additional address info
+            10. city: City name
+            11. state: State name
+            12. zipCode: ZIP/Postal code
+            13. proposed_start_datetime: Proposed start date and time (ISO format if possible)
+            14. proposed_end_datetime: Proposed end date and time (ISO format if possible)
+            15. estimatedPrice: Estimated price for the service (numeric)
+            16. notes: Any additional notes or special requests
+            17. source: Source of the lead (if available, otherwise use "API")
+            
+            Return ONLY a JSON object with these fields. Do not include any explanations or additional text.
+            """
+            
+            # Call ChatGPT API to analyze the data
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Analyze this data: {json.dumps(data)}"}
+                ],
+                response_format={"type": "json_object"}
+            )
+            
+            # Parse the structured response
+            structured_data = json.loads(response.choices[0].message.content)
+            print(f"Structured data from ChatGPT: {structured_data}")
+            
+            # Extract fields for Lead model
+            lead_data = {
+                'business': business,
+                'name': structured_data.get('name', ''),
+                'email': structured_data.get('email'),
+                'phone_number': structured_data.get('phone_number', ''),
+                'bedrooms': structured_data.get('bedrooms'),
+                'bathrooms': structured_data.get('bathrooms'),
+                'squareFeet': structured_data.get('squareFeet'),
+                'type_of_cleaning': structured_data.get('type_of_cleaning'),
+                'address1': structured_data.get('address1'),
+                'address2': structured_data.get('address2'),
+                'city': structured_data.get('city'),
+                'state': structured_data.get('state'),
+                'zipCode': structured_data.get('zipCode'),
+                'estimatedPrice': structured_data.get('estimatedPrice'),
+                'notes': structured_data.get('notes'),
+                'content': json.dumps(data, indent=2),  # Store original JSON
+                'source': structured_data.get('source', 'API'),
+                'details': data  # Store full original data in details field
+            }
+            
+            # Handle datetime fields if present
+            proposed_start = structured_data.get('proposed_start_datetime')
+            if proposed_start:
+                try:
+                    lead_data['proposed_start_datetime'] = datetime.fromisoformat(proposed_start.replace('Z', '+00:00'))
+                except Exception as e:
+                    print(f"Error parsing proposed start datetime: {e}")
+            
+            proposed_end = structured_data.get('proposed_end_datetime')
+            if proposed_end:
+                try:
+                    lead_data['proposed_end_datetime'] = datetime.fromisoformat(proposed_end.replace('Z', '+00:00'))
+                except Exception as e:
+                    print(f"Error parsing proposed end datetime: {e}")
+            
+            # Create the Lead object
+            lead = Lead.objects.create(**lead_data)
+            print(f"Successfully created lead from ChatGPT analysis: {lead.leadId}")
+            
+            # Track usage
+            try:
+                UsageTracker.increment_leads(business=business, increment_by=1)
+            except Exception as e:
+                print(f"Error tracking lead usage: {e}")
+                
+            return JsonResponse({
+                'status': 'success', 
+                'lead_id': lead.leadId,
+                'structured_data': structured_data
+            }, status=200)
+            
+        except json.JSONDecodeError:
+            return JsonResponse({'message': 'Invalid JSON data'}, status=400)
+        except Exception as e:
+            print(f"Error processing ChatGPT analysis webhook: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
+            return JsonResponse({'message': f'Error: {str(e)}'}, status=500)
+    
+    return JsonResponse({'message': 'Method not allowed'}, status=405)
 
 
 def send_booking_data(booking):
@@ -358,11 +489,18 @@ def send_booking_data(booking):
                     }
                     
                     print(f"Sending data to workflow webhook: {integration.webhook_url}")
+                    # Prepare headers
+                    headers = {"Content-Type": "application/json"}
+                    
+                    # Add custom headers from integration if available
+                    if integration.headers:
+                        headers.update(integration.headers)
+                    
                     # Send to webhook URL
                     response = requests.post(
                         integration.webhook_url,
                         json=payload,
-                        headers={"Content-Type": "application/json"},
+                        headers=headers,
                         timeout=30
                     )
 
@@ -401,9 +539,11 @@ def send_booking_data(booking):
                     # Send to base URL
                     headers = {"Content-Type": "application/json"}
                     
-                    # Add authentication if configured
-                    if integration.auth_type == 'token' and integration.auth_data.get('token'):
-                        headers['Authorization'] = f"Bearer {integration.auth_data['token']}"
+                   
+                    
+                    # Add custom headers from integration if available
+                    if integration.headers:
+                        headers.update(integration.headers)
                     
                     print(f"Sending data to API endpoint: {integration.base_url}")
                     response = requests.post(

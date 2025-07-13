@@ -17,6 +17,7 @@ urlpatterns = [
     path('process-payment/<int:plan_id>/', views.process_payment, name='process_payment'),
     path('success/<int:subscription_id>/<str:transaction_id>/', views.subscription_success, name='subscription_success'),
     path('trial-success/<int:subscription_id>/', views.trial_success, name='trial_success'),
+    path('onboarding-call-success/', views.onboarding_call_success, name='onboarding_call_success'),
     
     # Coupon validation
     path('validate-coupon/', views.validate_coupon, name='validate_coupon'),

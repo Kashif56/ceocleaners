@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+
+{% block title %}Embed AI Agent{% endblock %}
+
+{% block content %}
+<div class="container px-3 px-md-4">
+    <div class="row mb-3 mb-md-4">
+        <div class="col-12">
+            <h2 class="mt-md-3">Embed AI Agent on Your Website</h2>
+            <p class="text-muted">Follow these steps to add your AI chatbot to any website.</p>
+        </div>
+    </div>
+   
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Embed AI Chatbot Widget</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Embed your AI chatbot widget on any website to provide instant support to your visitors.
+                    </div>
+                    
+                    <h5>1. Include the Script</h5>
+                    <p>Add the following script tag to your HTML file before the closing <code>&lt;/body&gt;</code> tag:</p>
+                    <div class="code-block bg-light p-3 mb-3 rounded">
+                        <pre class="mb-0"><code>&lt;script src="https://chatbot-widget-khaki.vercel.app/chatbot-widget.js"&gt;&lt;/script&gt;</code></pre>
+                        <button class="btn btn-sm btn-outline-secondary mt-2" onclick="copyToClipboard('script-code')"><i class="fas fa-copy me-1"></i>Copy</button>
+                        <span id="script-code" class="d-none">&lt;script src="https://chatbot-widget-khaki.vercel.app/chatbot-widget.js"&gt;&lt;/script&gt;</span>
+                    </div>
+                    
+                    <h5>2. Initialize the Widget</h5>
+                    <p>Add the following script to initialize the widget with your business ID:</p>
+                    <div class="code-block bg-light p-3 mb-3 rounded">
+                        <pre class="mb-0"><code>&lt;script&gt;
+  document.addEventListener("DOMContentLoaded", function() {
+    ChatbotWidget.init({
+      businessId: '{{ config.business.businessId }}',  // Your business ID
+      botName: '{{ config.agent_name|default:"Sarah" }}',  // Name of your chatbot assistant
+    });
+  });
+&lt;/script&gt;</code></pre>
+                        <button class="btn btn-sm btn-outline-secondary mt-2" onclick="copyToClipboard('init-code')"><i class="fas fa-copy me-1"></i>Copy</button>
+                        <span id="init-code" class="d-none">&lt;script&gt;
+  document.addEventListener("DOMContentLoaded", function() {
+    ChatbotWidget.init({
+      businessId: '{{ config.business.businessId }}',  // Your business ID
+      botName: '{{ config.agent_name|default:"Sarah" }}',  // Name of your chatbot assistant
+    });
+  });
+&lt;/script&gt;</span>
+                    </div>
+                    
+                    <h5>Configuration Options</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Type</th>
+                                    <th>Required</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>businessId</code></td>
+                                    <td>String</td>
+                                    <td>Yes</td>
+                                    <td>Your unique business identifier</td>
+                                </tr>
+                                <tr>
+                                    <td><code>botName</code></td>
+                                    <td>String</td>
+                                    <td>Yes</td>
+                                    <td>The name displayed for your chatbot</td>
+                                </tr>
+                                <tr>
+                                    <td><code>initialMessage</code></td>
+                                    <td>String</td>
+                                    <td>No</td>
+                                    <td>The first message displayed when a user starts a new conversation</td>
+                                </tr>
+                                <tr>
+                                    <td><code>botAvatar</code></td>
+                                    <td>String</td>
+                                    <td>No</td>
+                                    <td>URL to your bot's avatar image</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <h5 class="mt-4">3. Customization Options</h5>
+                    <p>You can customize the appearance and behavior of your chatbot widget:</p>
+                    <div class="code-block bg-light p-3 mb-3 rounded">
+                        <pre class="mb-0"><code>&lt;script&gt;
+  document.addEventListener("DOMContentLoaded", function() {
+    ChatbotWidget.init({
+      businessId: '{{ config.business.businessId }}',
+      botName: '{{ config.agent_name|default:"Sarah" }}',
+      initialMessage: 'Hello! How can I help you today?',
+      botAvatar: 'https://example.com/avatar.png',
+      theme: {
+        primaryColor: '#2563eb',
+        secondaryColor: '#f8fafc',
+        fontFamily: 'Arial, sans-serif'
+      }
+    });
+  });
+&lt;/script&gt;</code></pre>
+                        <button class="btn btn-sm btn-outline-secondary mt-2" onclick="copyToClipboard('custom-code')"><i class="fas fa-copy me-1"></i>Copy</button>
+                        <span id="custom-code" class="d-none">&lt;script&gt;
+  document.addEventListener("DOMContentLoaded", function() {
+    ChatbotWidget.init({
+      businessId: '{{ config.business.businessId }}',
+      botName: '{{ config.agent_name|default:"Sarah" }}',
+      initialMessage: 'Hello! How can I help you today?',
+      botAvatar: 'https://example.com/avatar.png',
+      theme: {
+        primaryColor: '#2563eb',
+        secondaryColor: '#f8fafc',
+        fontFamily: 'Arial, sans-serif'
+      }
+    });
+  });
+&lt;/script&gt;</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container for notifications -->
+<div class="position-fixed bottom-0 end-0 p-3 d-none" style="z-index: 11">
+    <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto" id="toastTitle">Notification</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body" id="toastMessage"></div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    function copyToClipboard(elementId) {
+        const element = document.getElementById(elementId);
+        const text = element.textContent;
+        
+        navigator.clipboard.writeText(text).then(function() {
+            showToast('Success', 'Copied to clipboard!', 'success');
+        }, function(err) {
+            showToast('Error', 'Could not copy text: ' + err, 'error');
+        });
+    }
+    
+    // Initialize toast
+    document.addEventListener('DOMContentLoaded', function() {
+        const toastElement = document.getElementById('toast');
+        const toast = new bootstrap.Toast(toastElement, { delay: 5000 });
+        
+        window.showToast = function(title, message, type = 'success') {
+            const toastTitle = document.getElementById('toastTitle');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastContainer = toastElement.parentElement;
+            
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+            
+            // Set toast color based on type
+            toastElement.className = 'toast';
+            if (type === 'success') {
+                toastElement.classList.add('bg-success', 'text-white');
+            } else if (type === 'error') {
+                toastElement.classList.add('bg-danger', 'text-white');
+            } else if (type === 'warning') {
+                toastElement.classList.add('bg-warning');
+            } else if (type === 'info') {
+                toastElement.classList.add('bg-info');
+            }
+            
+            toastContainer.classList.remove('d-none');
+            toast.show();
+        };
+    });
+</script>
+{% endblock %}
+{% endblock %}

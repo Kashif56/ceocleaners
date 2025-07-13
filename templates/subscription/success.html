@@ -5,7 +5,7 @@
 {% block extra_head %}
 <style>
     .success-animation {
-        animation: scale-in 0.5s ease-out;
+        animation: scale-in 0.3s ease-out;
     }
     
     @keyframes scale-in {
@@ -14,14 +14,27 @@
         100% { transform: scale(1); opacity: 1; }
     }
     
-    .pulse {
-        animation: pulse 2s infinite;
+    .checkmark-circle {
+        animation: checkmark-circle 2s infinite;
     }
     
-    @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
+    @keyframes checkmark-circle {
+        0% { transform: scale(1) rotate(0deg); }
+        25% { transform: scale(1.1) rotate(5deg); }
+        50% { transform: scale(1.05) rotate(0deg); }
+        75% { transform: scale(1.1) rotate(-5deg); }
+        100% { transform: scale(1) rotate(0deg); }
+    }
+    
+    .checkmark {
+        animation: checkmark-bounce 1.5s ease-in-out infinite;
+        color: white;
+        text-shadow: 0 0 10px rgba(255,255,255,0.5);
+    }
+    
+    @keyframes checkmark-bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
     }
     
     .feature-item {
@@ -34,11 +47,38 @@
     
     .confetti {
         position: absolute;
-        width: 10px;
-        height: 10px;
+        width: 8px;
+        height: 8px;
         background-color: #fd7e14;
         top: -10px;
         z-index: 1;
+        will-change: transform; /* Performance optimization */
+    }
+    
+    .demo-button {
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .demo-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .demo-button::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: 0.5s;
+    }
+    
+    .demo-button:hover::before {
+        left: 100%;
     }
 </style>
 {% endblock %}
@@ -50,19 +90,21 @@
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
-                <div class="card-body p-0">
+                <div class="card-body p-0" style="visibility: visible;">
                     <!-- Success header with gradient -->
                     <div class="bg-gradient-primary text-white text-center p-5" style="background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);">
                         <div class="success-animation mb-4">
                             <div class="position-relative d-inline-block">
-                                <i class="fas fa-check-circle pulse" style="font-size: 6rem;"></i>
+                                <div class="checkmark-circle" style="background-color: #28a745; width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 0 20px rgba(255,255,255,0.5);">
+                                    <i class="fas fa-check checkmark" style="font-size: 4rem;"></i>
+                                </div>
                                 <div class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
                                     <i class="fas fa-bolt"></i>
                                 </div>
                             </div>
                         </div>
                         <h1 class="display-5 fw-bold mb-2">Subscription Successful!</h1>
-                        <p class="lead mb-0">Thank you for subscribing to our {{ subscription.plan.name }} plan.</p>
+                        <p class="lead mb-0">Thank you for subscribing to our {{ subscription.plan.display_name }} plan.</p>
                     </div>
                     
                     <!-- Subscription details -->
@@ -79,7 +121,7 @@
                                             <i class="fas fa-tag text-primary me-3 fa-lg"></i>
                                             <div>
                                                 <div class="text-muted small">Plan</div>
-                                                <div class="fw-bold">{{ subscription.plan.name }}</div>
+                                                <div class="fw-bold">{{ subscription.plan.display_name }}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -88,7 +130,7 @@
                                             <i class="fas fa-dollar-sign text-primary me-3 fa-lg"></i>
                                             <div>
                                                 <div class="text-muted small">Price</div>
-                                                <div class="fw-bold">${{ subscription.plan.price }}/{{ subscription.plan.billing_cycle }}</div>
+                                                <div class="fw-bold">${{ subscription.plan.get_display_price }}/{{ subscription.plan.billing_cycle }}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -142,8 +184,20 @@
                                         <tbody>
                                             <tr>
                                                 <td class="text-muted">Base Price:</td>
-                                                <td class="text-end fw-bold">${{ payment_details.original_price }}</td>
+                                                <td class="text-end fw-bold">${{ subscription.plan.get_display_price }}</td>
                                             </tr>
+                                            
+                                            {% if payment_details.setup_fee_applied %}
+                                            <tr>
+                                                <td class="text-muted">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-tools text-primary me-2"></i>
+                                                        Setup Fee (One-time):
+                                                    </div>
+                                                </td>
+                                                <td class="text-end fw-bold">${{ payment_details.setup_fee_amount }}</td>
+                                            </tr>
+                                            {% endif %}
                                             
                                             {% if payment_details.coupon_applied %}
                                             <tr>
@@ -173,14 +227,47 @@
                             </div>
                         </div>
                         
-                        <div class="d-grid gap-3 d-md-flex justify-content-center mb-5">
-                            <a href="{% url 'subscription:subscription_management' %}" class="btn btn-primary btn-lg px-4 py-3">
-                                <i class="fas fa-cog me-2"></i>Manage Subscription
-                            </a>
-                            <a href="{% url 'usage_analytics:usage_overview' %}" class="btn btn-outline-primary btn-lg px-4 py-3">
-                                <i class="fas fa-chart-line me-2"></i>View Usage Dashboard
-                            </a>
+                        {% if setup_fee.call_status == 'pending' %}
+                        <div class="card bg-light border-0 shadow-sm mb-4">
+                            <div class="card-body p-4">
+                                <h5 class="card-title text-primary mb-3">
+                                    <i class="fas fa-calendar-check me-2"></i>Schedule Your Mandatory Onboarding Call
+                                </h5>
+                                <p class="mb-3">
+                                    Book your 1 on 1 call with a platform expert where he or she will go through the whole platform with you, to ensure proper setup and answer any questions. During the setup, you will also be able to setup 1-2 integrations with existing tools.
+                                </p>
+                                <div class="d-grid gap-3 d-md-flex justify-content-center">
+                                    <a id="app-scheduling" href="#" class="btn btn-dark btn-lg px-4 py-3" alt="Booknow button" target="_blank" data-domain-name="https://cleaningbizai.bookafy.com/schedule/?type=iframe&custom_embed=true&locale=en">
+                                        <i class="fas fa-phone-alt me-2"></i>
+                                        Schedule Onboarding Call Now</a>
+                                <script id="scheduling_script" type="text/javascript" src="https://app.bookafy.com/popup-code.js"></script>
+                                </div>
+                            </div>
                         </div>
+                        {% endif %}
+                        
+                        {% if is_first_purchase %}
+                        <!-- Personalized Demo Button for First-time Subscribers -->
+                        <div class="card bg-gradient-primary border-0 shadow-lg mb-5 overflow-hidden">
+                            <div class="card-body p-4 text-center">
+                                <div class="row align-items-center">
+                                    <div class="col-lg-8 text-lg-start mb-4 mb-lg-0">
+                                        <h4 class="text-white mb-2"><i class="fas fa-star me-2"></i>New User Exclusive: Get a Personalized Demo</h4>
+                                        <p class="text-white-50 mb-0">As a new subscriber, schedule a free personalized demo with our experts to maximize your subscription benefits.</p>
+                                    </div>
+                                    <div class="col-lg-4">
+                                        <button 
+                                            class="btn btn-light btn-lg w-100 demo-button shadow-sm" 
+                                            data-cal-link="kashif.m/cleaningbiz-demo" 
+                                            data-cal-namespace="cleaningbiz-demo" 
+                                            data-cal-config='{"layout":"month_view","theme":"auto"}'>
+                                            <i class="fas fa-calendar-check me-2"></i>Schedule Your Demo
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                         
                         <h4 class="text-center mb-4">What's Next?</h4>
                         <div class="row g-4">
@@ -227,6 +314,24 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Cal element-click embed code begins -->
+<script type="text/javascript">
+  (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; if(typeof namespace === "string"){cal.ns[namespace] = cal.ns[namespace] || api;p(cal.ns[namespace], ar);p(cal, ["initNamespace", namespace]);} else p(cal, ar); return;} p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
+  Cal("init", "cleaningbiz-demo", {origin:"https://cal.com"});
+  Cal.ns["cleaningbiz-demo"]("ui", {"hideEventTypeDetails":false,"layout":"month_view"});
+  
+  // Onboarding call initialization
+  Cal("init", "onboarding-call", {origin:"https://app.cal.com"});
+  Cal.ns["onboarding-call"]("ui", {"hideEventTypeDetails":false,"layout":"month_view"});
+  Cal.ns["onboarding-call"]("on", {
+    bookingSuccessful: function(payload) {
+      // Redirect to onboarding call success page
+      window.location.href = "{% url 'subscription:onboarding_call_success' %}";
+    }
+  });
+</script>
+<!-- Cal element-click embed code ends -->
+
 <script>
     // Prevent going back to the payment page
     history.pushState(null, null, document.URL);
@@ -252,20 +357,32 @@
         });
     });
     
-    // Create confetti effect
+    // Create confetti effect with improved performance
     document.addEventListener('DOMContentLoaded', function() {
+        // Show subscription content immediately
+        document.querySelector('.card-body').style.visibility = 'visible';
+        
         const confettiContainer = document.getElementById('confetti-container');
         const colors = ['#0d6efd', '#0dcaf0', '#198754', '#ffc107', '#fd7e14'];
         
-        for (let i = 0; i < 100; i++) {
-            createConfetti(confettiContainer, colors);
+        // Reduce number of confetti elements for better performance
+        const confettiCount = 50;
+        
+        // Pre-create all confetti elements at once
+        const fragment = document.createDocumentFragment();
+        
+        for (let i = 0; i < confettiCount; i++) {
+            createConfetti(fragment, colors);
         }
+        
+        // Add all confetti to DOM at once (more efficient)
+        confettiContainer.appendChild(fragment);
         
         function createConfetti(container, colors) {
             const confetti = document.createElement('div');
             confetti.classList.add('confetti');
             
-            const size = Math.random() * 10 + 5;
+            const size = Math.random() * 8 + 5;
             const color = colors[Math.floor(Math.random() * colors.length)];
             
             confetti.style.width = `${size}px`;
@@ -273,33 +390,34 @@
             confetti.style.backgroundColor = color;
             confetti.style.left = `${Math.random() * 100}%`;
             
-            // Animation
-            confetti.style.animation = `fall ${Math.random() * 3 + 2}s linear forwards`;
+            // Shorter animation duration (1-2s instead of 2-5s)
+            const duration = Math.random() * 1 + 1;
+            confetti.style.animation = `fall ${duration}s linear forwards`;
             confetti.style.opacity = Math.random();
             confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
             
-            // Add keyframes dynamically
-            const styleSheet = document.styleSheets[0];
-            const keyframes = `@keyframes fall {
-                0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
-                100% { transform: translateY(${window.innerHeight}px) rotate(${Math.random() * 360}deg); opacity: 0; }
-            }`;
-            
-            try {
-                styleSheet.insertRule(keyframes, styleSheet.cssRules.length);
-            } catch (e) {
-                // Fallback for browsers that don't support insertRule
-                const style = document.createElement('style');
-                style.innerHTML = keyframes;
-                document.head.appendChild(style);
-            }
-            
             container.appendChild(confetti);
             
-            // Remove confetti after animation ends
+            // Remove confetti after animation ends - shorter timeout
             setTimeout(() => {
                 confetti.remove();
-            }, 5000);
+            }, duration * 1000 + 100); // Just slightly longer than the animation
+        }
+        
+        // Add keyframes once for all confetti
+        const styleSheet = document.styleSheets[0];
+        const keyframes = `@keyframes fall {
+            0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(${Math.min(window.innerHeight, 600)}px) rotate(${Math.random() * 360}deg); opacity: 0; }
+        }`;
+        
+        try {
+            styleSheet.insertRule(keyframes, styleSheet.cssRules.length);
+        } catch (e) {
+            // Fallback for browsers that don't support insertRule
+            const style = document.createElement('style');
+            style.innerHTML = keyframes;
+            document.head.appendChild(style);
         }
     });
 </script>

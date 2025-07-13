@@ -20,9 +20,11 @@ urlpatterns = [
     path('subscription/', include('subscription.urls')),
     path('voice_agent/', include('retell_agent.urls')),
     path('admin-dashboard/', include('admin_dashbaord.urls')),
+    path('saas/', include('saas.urls')),
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG == False:
     handler400 = 'leadsAutomation.error_handlers.handler400'

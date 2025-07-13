@@ -1,0 +1,559 @@
+{% extends 'admin_dashboard/base.html' %}
+
+{% block title %}Subscription Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-0">Subscription Details</h1>
+            <p class="text-muted">Detailed information about subscription #{{ subscription.id }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'admin_dashboard:subscriptions' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i> Back to Subscriptions
+            </a>
+            <a href="{% url 'admin_dashboard:subscription_billing_history' subscription.id %}" class="btn btn-outline-secondary">
+                <i class="fas fa-file-invoice-dollar me-2"></i> View All Billing History
+            </a>
+            <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle" type="button" id="subscriptionActions" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-cog me-2"></i> Actions
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="subscriptionActions">
+                    <li>
+                        <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#changePlanModal">
+                            <i class="fas fa-exchange-alt me-2"></i> Change Plan
+                        </button>
+                    </li>
+                    {% if subscription.status == 'active' %}
+                    <li>
+                        <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#cancelPlanModal">
+                            <i class="fas fa-ban me-2"></i> Cancel Subscription
+                        </button>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Breadcrumb Navigation -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'admin_dashboard:index' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'admin_dashboard:subscriptions' %}">Subscriptions</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Subscription #{{ subscription.id }}</li>
+        </ol>
+    </nav>
+    
+    <!-- Business Information -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Business Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Business Name</label>
+                        <div class="fw-bold">{{ business.businessName }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Business Email</label>
+                        <div>{{ business.user.email }}</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Business Phone</label>
+                        <div>{{ business.phone }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Business Owner</label>
+                        <div>{{ business.user.get_full_name }} @{{ business.user.username }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-2">
+                <a href="{% url 'admin_dashboard:business_detail' business.id %}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-building me-2"></i> View Business Details
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Subscription Details -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Subscription Details</h5>
+                    <span class="badge bg-{% if subscription.status == 'active' %}success{% elif subscription.status == 'cancelled' %}danger{% elif subscription.status == 'past_due' %}warning{% else %}secondary{% endif %} py-2 px-3">
+                        {{ subscription.status|title }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Plan Name</label>
+                                <div class="fw-bold">
+                                    <a href="{% url 'admin_dashboard:subscription_plans' %}">{{ subscription.name }}</a>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Price</label>
+                                <div>${{ subscription.price }}/{{ subscription.billing_cycle }}</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Plan Tier</label>
+                                <div>{{ subscription.plan_tier|title }}</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Plan Type</label>
+                                <div>{{ subscription.plan_type|title }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Start Date</label>
+                                <div>{{ subscription.start_date|date:"F j, Y" }}</div>
+                            </div>
+                            {% if subscription.end_date %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted">End Date</label>
+                                <div>{{ subscription.end_date|date:"F j, Y" }}</div>
+                            </div>
+                            {% endif %}
+                            {% if subscription.next_billing_date %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Next Billing Date</label>
+                                <div>{{ subscription.next_billing_date|date:"F j, Y" }}</div>
+                            </div>
+                            {% endif %}
+                            {% if subscription.is_trial %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Trial End Date</label>
+                                <div>{{ subscription.trial_end_date|date:"F j, Y" }}</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Features -->
+                    <div class="mt-4">
+                        <h6 class="mb-3">Plan Features</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <ul class="list-group">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Voice Minutes
+                                        <span class="badge bg-primary rounded-pill">{{ subscription.voice_minutes_limit }}</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        SMS Messages
+                                        <span class="badge bg-primary rounded-pill">{{ subscription.sms_messages_limit }}</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Agents
+                                        <span class="badge bg-primary rounded-pill">{{ subscription.agents_limit }}</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <ul class="list-group">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Leads
+                                        <span class="badge bg-primary rounded-pill">{{ subscription.leads_limit }}</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Cleaners
+                                        <span class="badge bg-primary rounded-pill">{{ subscription.cleaners_limit }}</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <!-- Additional Features -->
+                        {% if subscription.features %}
+                        <div class="mt-3">
+                            <h6 class="mb-2">Additional Features</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for feature in subscription.features %}
+                                <span class="badge bg-light text-dark p-2">
+                                    <i class="fas fa-check-circle text-success me-1"></i> {{ feature }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Usage Analytics -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Usage Analytics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Voice Minutes Usage -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="card-subtitle text-muted">Voice Minutes</h6>
+                                        <div class="rounded-circle bg-info-light p-2">
+                                            <i class="fas fa-clock text-info"></i>
+                                        </div>
+                                    </div>
+                                    <h2 class="mb-1">{{ usage.total.voice_minutes }} / {{ usage.limits.voice_minutes }}</h2>
+                                    <div class="progress mb-2" style="height: 8px;">
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: {{ usage.usage_percentage.voice_minutes }}%;" aria-valuenow="{{ usage.usage_percentage.voice_minutes }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <p class="text-muted small mb-0">{{ usage.usage_percentage.voice_minutes }}% of monthly limit</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- SMS Messages Usage -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="card-subtitle text-muted">SMS Messages</h6>
+                                        <div class="rounded-circle bg-success-light p-2">
+                                            <i class="fas fa-sms text-success"></i>
+                                        </div>
+                                    </div>
+                                    <h2 class="mb-1">{{ usage.total.sms_messages }} / {{ usage.limits.sms_messages }}</h2>
+                                    <div class="progress mb-2" style="height: 8px;">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ usage.usage_percentage.sms_messages }}%;" aria-valuenow="{{ usage.usage_percentage.sms_messages }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <p class="text-muted small mb-0">{{ usage.usage_percentage.sms_messages }}% of monthly limit</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Agents Usage -->
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="card-subtitle text-muted">Agents</h6>
+                                        <div class="rounded-circle bg-warning-light p-2">
+                                            <i class="fas fa-user-tie text-warning"></i>
+                                        </div>
+                                    </div>
+                                    <h2 class="mb-1">{{ usage.total.active_agents }} / {{ usage.limits.active_agents }}</h2>
+                                    <div class="progress mb-2" style="height: 8px;">
+                                        <div class="progress-bar bg-warning" role="progressbar" style="width: {{ usage.usage_percentage.active_agents }}%;" aria-valuenow="{{ usage.usage_percentage.active_agents }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <p class="text-muted small mb-0">{{ usage.usage_percentage.active_agents }}% of limit</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Leads Usage -->
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="card-subtitle text-muted">Leads</h6>
+                                        <div class="rounded-circle bg-primary-light p-2">
+                                            <i class="fas fa-user-plus text-primary"></i>
+                                        </div>
+                                    </div>
+                                    <h2 class="mb-1">{{ usage.total.leads_generated }} / {{ usage.limits.leads_generated }}</h2>
+                                    <div class="progress mb-2" style="height: 8px;">
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ usage.usage_percentage.leads_generated }}%;" aria-valuenow="{{ usage.usage_percentage.leads_generated }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <p class="text-muted small mb-0">{{ usage.usage_percentage.leads_generated }}% of limit</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Cleaners Usage -->
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="card-subtitle text-muted">Cleaners</h6>
+                                        <div class="rounded-circle bg-danger-light p-2">
+                                            <i class="fas fa-broom text-danger"></i>
+                                        </div>
+                                    </div>
+                                    <h2 class="mb-1">{{ usage.total.cleaners }} / {{ usage.limits.cleaners }}</h2>
+                                    <div class="progress mb-2" style="height: 8px;">
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: {{ usage.usage_percentage.cleaners }}%;" aria-valuenow="{{ usage.usage_percentage.cleaners }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <p class="text-muted small mb-0">{{ usage.usage_percentage.cleaners }}% of limit</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Billing History -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Billing History</h5>
+                    <a href="{% url 'admin_dashboard:subscription_billing_history' subscription.id %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-external-link-alt me-1"></i> View All
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if billing_history %}
+                        <div class="accordion" id="billingHistoryAccordion">
+                            {% for invoice in billing_history %}
+                            <div class="accordion-item mb-3 border">
+                                <h2 class="accordion-header" id="heading{{ invoice.id }}">
+                                    <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ invoice.id }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" aria-controls="collapse{{ invoice.id }}">
+                                        <div class="d-flex justify-content-between align-items-center w-100">
+                                            <div>
+                                                <span class="fw-bold">Invoice #{{ invoice.id }}</span> - {{ invoice.billing_date|date:"F j, Y" }}
+                                            </div>
+                                            <div class="d-flex align-items-center">
+                                                <span class="me-3">${{ invoice.amount }}</span>
+                                                <span class="badge bg-{% if invoice.status == 'paid' %}success{% elif invoice.status == 'pending' %}warning{% elif invoice.status == 'failed' %}danger{% elif invoice.status == 'refunded' %}info{% else %}secondary{% endif %}">
+                                                    {{ invoice.status|title }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </button>
+                                </h2>
+                                <div id="collapse{{ invoice.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" aria-labelledby="heading{{ invoice.id }}" data-bs-parent="#billingHistoryAccordion">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6 class="mb-3">Invoice Information</h6>
+                                                <div class="mb-2">
+                                                    <label class="form-label text-muted">Invoice ID</label>
+                                                    <div>{{ invoice.id }}</div>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <label class="form-label text-muted">Billing Date</label>
+                                                    <div>{{ invoice.billing_date|date:"F j, Y H:i" }}</div>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <label class="form-label text-muted">Amount</label>
+                                                    <div>${{ invoice.amount }}</div>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <label class="form-label text-muted">Status</label>
+                                                    <div>
+                                                        <span class="badge bg-{% if invoice.status == 'paid' %}success{% elif invoice.status == 'pending' %}warning{% elif invoice.status == 'failed' %}danger{% elif invoice.status == 'refunded' %}info{% else %}secondary{% endif %}">
+                                                            {{ invoice.status|title }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                {% if invoice.invoice_url %}
+                                                <div class="mb-2">
+                                                    <label class="form-label text-muted">Invoice URL</label>
+                                                    <div>
+                                                        <a href="{{ invoice.invoice_url }}" target="_blank" class="text-primary">
+                                                            <i class="fas fa-external-link-alt me-1"></i> View Invoice
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% if invoice.square_invoice_id %}
+                                                <div class="mb-2">
+                                                    <label class="form-label text-muted">Square Invoice ID</label>
+                                                    <div>{{ invoice.square_invoice_id }}</div>
+                                                </div>
+                                                {% endif %}
+                                                {% if invoice.square_payment_id %}
+                                                <div class="mb-2">
+                                                    <label class="form-label text-muted">Square Payment ID</label>
+                                                    <div>{{ invoice.square_payment_id }}</div>
+                                                </div>
+                                                {% endif %}
+                                                {% if invoice.stripe_invoice_id %}
+                                                <div class="mb-2">
+                                                    <label class="form-label text-muted">Stripe Invoice ID</label>
+                                                    <div>{{ invoice.stripe_invoice_id }}</div>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6 class="mb-3">Invoice Details</h6>
+                                                {% if invoice.details %}
+                                                    <div class="card bg-light">
+                                                        <div class="card-body p-3">
+                                                            <pre class="mb-0"><code>{{ invoice.details|pprint }}</code></pre>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Loop through details if it's a dictionary -->
+                                                    {% if invoice.details.items %}
+                                                    <div class="mt-3">
+                                                        <h6 class="mb-2">Detail Items</h6>
+                                                        <ul class="list-group">
+                                                            {% for key, value in invoice.details.items %}
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span class="text-muted">{{ key }}</span>
+                                                                <span>{{ value }}</span>
+                                                            </li>
+                                                            {% endfor %}
+                                                        </ul>
+                                                    </div>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <div class="text-muted">No additional details available</div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mt-3 d-flex justify-content-end">
+                                            <div class="btn-group">
+                                                {% if invoice.invoice_url %}
+                                                <a href="{{ invoice.invoice_url }}" target="_blank" class="btn btn-outline-primary">
+                                                    <i class="fas fa-external-link-alt me-2"></i> View Invoice
+                                                </a>
+                                                {% endif %}
+                                                <button type="button" class="btn btn-outline-secondary">
+                                                    <i class="fas fa-download me-2"></i> Download PDF
+                                                </button>
+                                                {% if invoice.status == 'pending' %}
+                                                <button type="button" class="btn btn-outline-success">
+                                                    <i class="fas fa-check-circle me-2"></i> Mark as Paid
+                                                </button>
+                                                {% endif %}
+                                                {% if invoice.status == 'paid' %}
+                                                <button type="button" class="btn btn-outline-info">
+                                                    <i class="fas fa-undo me-2"></i> Issue Refund
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="fas fa-receipt fa-3x mb-3"></i>
+                                <p>No billing history available for this subscription.</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Change Plan Modal -->
+<div class="modal fade" id="changePlanModal" tabindex="-1" aria-labelledby="changePlanModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changePlanModalLabel">Change Subscription Plan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'admin_dashboard:admin_change_plan' %}" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="subscription_id" value="{{ subscription.id }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="new_plan" class="form-label">Select New Plan</label>
+                        <select class="form-select" id="new_plan" name="new_plan" required>
+                            <option value="" selected disabled>Choose a plan...</option>
+                            <!-- Plans will be loaded dynamically -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="change_reason" class="form-label">Reason for Change</label>
+                        <textarea class="form-control" id="change_reason" name="change_reason" rows="3" placeholder="Enter reason for changing the plan"></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="prorate" name="prorate" checked>
+                        <label class="form-check-label" for="prorate">
+                            Prorate charges for the remainder of the billing cycle
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Change Plan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Plan Modal -->
+<div class="modal fade" id="cancelPlanModal" tabindex="-1" aria-labelledby="cancelPlanModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelPlanModalLabel">Cancel Subscription</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'admin_dashboard:admin_cancel_plan' %}" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="subscription_id" value="{{ subscription.id }}">
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Warning:</strong> Cancelling this subscription will immediately end the service for this business.
+                    </div>
+                    <div class="mb-3">
+                        <label for="cancel_reason" class="form-label">Reason for Cancellation</label>
+                        <textarea class="form-control" id="cancel_reason" name="cancel_reason" rows="3" placeholder="Enter reason for cancellation" required></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="immediate" name="immediate" value="1">
+                        <label class="form-check-label" for="immediate">
+                            Cancel immediately (otherwise will end at billing period)
+                        </label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="issue_refund" name="issue_refund" value="1">
+                        <label class="form-check-label" for="issue_refund">
+                            Issue refund for unused portion
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load subscription plans for the change plan modal
+        fetch('/admin/api/subscription-plans/')
+            .then(response => response.json())
+            .then(data => {
+                const planSelect = document.getElementById('new_plan');
+                data.plans.forEach(plan => {
+                    const option = document.createElement('option');
+                    option.value = plan.id;
+                    option.textContent = `${plan.name} - $${plan.price}/${plan.billing_cycle}`;
+                    planSelect.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Error loading subscription plans:', error));
+    });
+</script>
+{% endblock %}

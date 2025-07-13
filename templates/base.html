@@ -10,7 +10,7 @@
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
     <!-- Toastify CSS -->
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <!-- Bootstrap JS Bundle (includes Popper) -->
@@ -19,6 +19,11 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Toastify JS -->
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <!-- Moment.js for timezone handling -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.43/moment-timezone-with-data.min.js"></script>
+    <!-- Custom timezone utilities -->
+    <script src="{% static 'js/timezone.js' %}"></script>
     
     {% block extra_js %}{% endblock %}
     <style>
@@ -36,8 +41,12 @@
             --gray-light: #e2e8f0;
         }
 
+        * {
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
         body {
-            font-family: 'Poppins', sans-serif;
             background-color: #f8fafc;
             color: #334155;
             font-size: 0.9rem;
@@ -661,13 +670,13 @@
     {% block styles %}
     {% endblock %}
 </head>
-<body>
+<body data-business-timezone="{% if user.is_authenticated and user.business_set.exists %}{{ user.business_set.first.timezone }}{% else %}UTC{% endif %}">
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg sticky-top">
         <div class="container">
             <div class="d-flex align-items-center">
                 <a class="navbar-brand text-primary d-flex align-items-center" href="{% url 'home' %}">
-                    <i class="fas fa-broom me-2"></i>CleaningBiz AI
+                   CleaningBiz AI
                 </a>
                 <button class="navbar-toggler ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                     aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -675,193 +684,273 @@
                 </button>
             </div>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
                     {% if user.is_authenticated %}
-                        {% load user_tags %}
-                        
-                        {% if request.user|is_cleaner %}
-                        <!-- Cleaner Navigation Links -->
-                        <li class="nav-item">
-                            <a class="nav-link {% if '/bookings/' in request.path %}active{% endif %}" 
-                               href="{% url 'bookings:all_bookings' %}">
-                                <i class="fas fa-calendar-check me-1"></i>Cleaner Page
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if '/payouts/' in request.path %}active{% endif %}" 
-                               href="{% url 'bookings:payouts_dashboard' %}">
-                                <i class="fas fa-money-bill-wave me-1"></i>My Payouts
-                            </a>
-                        </li>
-                        {% elif request.user|is_business_owner %}
-                        <!-- Business Owner Navigation Links -->
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" 
-                               href="#" id="bookingsDropdown" role="button" 
-                               data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-calendar-check me-1"></i>Bookings
-                            </a>
-                            <ul class="dropdown-menu" aria-labelledby="bookingsDropdown">
-                                <li>
-                                    <a class="dropdown-item {% if '/bookings/all/' in request.path %}active{% endif %}" 
-                                       href="{% url 'bookings:all_bookings' %}">
-                                        <i class="fas fa-calendar-check me-2 text-primary"></i>All Bookings
-                                    </a>
-                                </li>
-                               
-                                <li>
-                                    <a class="dropdown-item {% if '/customers/' in request.path %}active{% endif %}" 
-                                       href="{% url 'bookings:customers' %}">
-                                        <i class="fas fa-users me-2 text-success"></i>Customers
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-                     
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path == '/booking/invoices/' %}active{% endif %}" 
-                               href="{% url 'invoice:all_invoices' %}">
-                                <i class="fas fa-file-invoice-dollar me-1"></i>Invoices
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path == '/leads/' %}active{% endif %}" 
-                               href="{% url 'all_leads' %}">
-                                <i class="fas fa-user-friends me-1"></i>Leads
-                            </a>
-                        </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" 
-                               href="#" id="cleanersDropdown" role="button" 
-                               data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-user-friends me-1"></i>Cleaners
-                            </a>
-                            <ul class="dropdown-menu" aria-labelledby="cleanersDropdown">
-                                <li>
-                                    <a class="dropdown-item {% if request.path == '/cleaners/' %}active{% endif %}" 
-                                       href="{% url 'cleaners_list' %}">
-                                        <i class="fas fa-user-friends me-2 text-primary"></i>All Cleaners
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item {% if '/payouts/' in request.path %}active{% endif %}" 
-                                       href="{% url 'bookings:payouts_dashboard' %}">
-                                        <i class="fas fa-money-bill-wave me-2 text-success"></i>Payouts
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-                        
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path == '/integration/' %}active{% endif %}" 
-                               href="{% url 'integration_list' %}">
-                                <i class="fas fa-screwdriver me-1"></i>Bookings Integration
-                            </a>
-                        </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" 
-                               href="#" id="aiDropdown" role="button" 
-                               data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-robot me-1"></i>SMS AI Agent
-                            </a>
-                            <ul class="dropdown-menu" aria-labelledby="aiDropdown">
-                                <li>
-                                    <a class="dropdown-item {% if '/ai_agent/agent-config/' in request.path %}active{% endif %}" 
-                                       href="{% url 'ai_agent:agent_config' %}">
-                                        <i class="fas fa-cogs me-2 text-primary"></i>SMS AI Agent Config
-                                    </a>
-                                </li>
-                               
-                                <li>
-                                    <a class="dropdown-item {% if '/ai_agent/sms-chats/' in request.path %}active{% endif %}" 
-                                       href="{% url 'ai_agent:all_chats' %}">
-                                        <i class="fas fa-sms me-2 text-success"></i>SMS Chat History
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-                        {% endif %}
-                    {% endif %}
-                    </ul>
+                    {% load user_tags %}
                     
-                    <div class="d-flex align-items-center">
-                        {% if user.is_authenticated %}
-                        {% if not request.user|is_cleaner %}
-                            <div class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                                    <div class="avatar-circle me-2">
-                                        <span class="avatar-initials">{{ request.user.username|make_list|first|upper }}</span>
-                                    </div>
-                                    <span class="d-md-inline d-none">{{ request.user.get_full_name|default:request.user.username }}</span>
-                                    <span class="d-inline d-md-none">Account</span>
+                    {% if request.user|is_cleaner %}
+                    <!-- Cleaner Navigation Links -->
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/bookings/' in request.path %}active{% endif %}" 
+                            href="{% url 'bookings:all_bookings' %}">
+                            <i class="fas fa-calendar-check me-1"></i>Cleaner Page
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/payouts/' in request.path %}active{% endif %}" 
+                            href="{% url 'bookings:payouts_dashboard' %}">
+                            <i class="fas fa-money-bill-wave me-1"></i>My Payouts
+                        </a>
+                    </li>
+                    {% elif request.user|is_business_owner %}
+                    <!-- Business Owner Navigation Links -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" 
+                            href="#" id="bookingsDropdown" role="button" 
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            Bookings
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="bookingsDropdown">
+                            <li>
+                                <a class="dropdown-item {% if '/bookings/all/' in request.path %}active{% endif %}" 
+                                    href="{% url 'bookings:all_bookings' %}">
+                                    All Bookings
                                 </a>
-                  
-                             
-                                <ul class="dropdown-menu dropdown-menu-lg-end">
-                                    <li class="px-3 py-2 d-flex flex-column">
-                                        <span class="fw-bold">{{ request.user.get_full_name }}</span>
-                                        <span class="text-muted small">{{ request.user.email|default:"No email set" }}</span>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <a class="dropdown-item" href="{% url 'accounts:profile' %}">
-                                            <i class="fas fa-user-circle me-2 text-primary"></i>Profile Settings
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="{% url 'accounts:smtp_config' %}">
-                                            <i class="fas fa-envelope me-2 text-warning"></i>SMTP Config
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="{% url 'accounts:payment_main' %}">
-                                            <i class="fas fa-credit-card me-2 text-success"></i>Payments
-                                        </a>
-                                    </li>
+                            </li>
+                            
+                            <li>
+                                <a class="dropdown-item {% if '/customers/' in request.path %}active{% endif %}" 
+                                    href="{% url 'bookings:customers' %}">
+                                    Customers
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/booking/invoices/' %}active{% endif %}" 
+                            href="{% url 'invoice:all_invoices' %}">
+                            <!-- <i class="fas fa-file-invoice-dollar me-1"></i> -->
+                            Invoices
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/leads/' %}active{% endif %}" 
+                            href="{% url 'all_leads' %}">
+                            <!-- <i class="fas fa-user-friends me-1"></i> -->
+                            Leads
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" 
+                            href="#" id="cleanersDropdown" role="button" 
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <!-- <i class="fas fa-user-friends me-1"></i> -->
+                            Cleaners
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="cleanersDropdown">
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/cleaners/' %}active{% endif %}" 
+                                    href="{% url 'cleaners_list' %}">
+                                    <i class="fas fa-user-friends me-2 text-primary"></i>All Cleaners
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/payouts/' in request.path %}active{% endif %}" 
+                                    href="{% url 'bookings:payouts_dashboard' %}">
+                                    <i class="fas fa-money-bill-wave me-2 text-success"></i>Payouts
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+     
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if '/accounts/thumbtack/' in request.path %}active{% endif %}" 
+                            href="#" id="thumbtackDropdown" role="button" 
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <!-- <i class="fas fa-plug me-1"></i> -->
+                            Integration
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="thumbtackDropdown">
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/integration/' %}active{% endif %}" 
+                                href="{% url 'integration_list' %}">
+                                <i class="fas fa-screwdriver me-1"></i>
+                                Bookings Integration
+                            </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/accounts/thumbtack/profile/' in request.path %}active{% endif %}" 
+                                    href="{% url 'accounts:thumbtack_profile' %}">
+                                    <i class="fas fa-user-circle me-2 text-primary"></i>Thumbtack Profile
+                                </a>
+                            </li>
+                           
+                 
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" 
+                            href="#" id="aiDropdown" role="button" 
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <!-- <i class="fas fa-robot me-1"></i> -->
+                            AI Agent
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="aiDropdown">
+                            <li>
+                                <a class="dropdown-item {% if '/ai_agent/agent-config/' in request.path %}active{% endif %}" 
+                                    href="{% url 'ai_agent:agent_config' %}">
+                                    <i class="fas fa-cogs me-2 text-primary"></i>SMS AI Agent Config
+                                </a>
+                            </li>
+                            
+                            <li>
+                                <a class="dropdown-item {% if '/ai_agent/sms-chats/' in request.path %}active{% endif %}" 
+                                    href="{% url 'ai_agent:all_chats' %}">
+                                    <i class="fas fa-sms me-2 text-success"></i>SMS Chat History
+                                </a>
+                            </li>
 
-                                    <li>
-                                        <a class="dropdown-item" href="https://support.cleaningbizai.com/" rel="noopener noreferrer" target="_blank">
-                                            <i class="fas fa-robot me-2 text-primary"></i>Help Center
-                                        </a>
-                                    </li>
-                                    
-
-                                    {% if request.user.is_superuser %}
-                                    <li class="nav-item">
-                                        <a class="dropdown-item" 
-                                        href="{% url 'test_features' %}">
-                                            <i class="fas fa-flask me-1"></i>Test Features
-                                        </a>
-                                    </li>
-
-                                    <li class="nav-item">
-                                        <a href="{% url 'admin_dashboard:index' %}" class="dropdown-item">Admin Dashboard</a>
-                                    </li>
-                                    {% endif %}
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <a class="dropdown-item text-danger" href="{% url 'accounts:logout' %}">
-                                            <i class="fas fa-sign-out-alt me-2"></i>Sign Out
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                            {% else %}
-                            <div class="d-flex align-items-center gap-1">
+                            <li>
+                                <a class="dropdown-item {% if '/ai_agent/embed-agent/' in request.path %}active{% endif %}" 
+                                    href="{% url 'ai_agent:embed_agent' %}">
+                                    <i class="fas fa-code me-2 text-info"></i>Embed AI Agent
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/ai_agent/agent-config/' in request.path %}active{% endif %}" 
+                                    href="{% url 'list_retell_agents' %}">
+                                    <i class="fas fa-cogs me-2 text-primary"></i>Voice AI Agent
+                                </a>
+                            </li>
+                            
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" 
+                            href="#" id="analyticsDropdown" role="button" 
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <!-- <i class="fas fa-robot me-1"></i> -->
+                            Analytics
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="analyticsDropdown">
+                            <li>
+                                <a class="dropdown-item {% if '/analytics/agent-config/' in request.path %}active{% endif %}" 
+                                    href="{% url 'analytics:analytics_dashboard' %}">
+                                    <i class="fas fa-cogs me-2 text-primary"></i>Business Analytics
+                                </a>
+                            </li>
+                            
+                            <li>
+                                <a class="dropdown-item {% if '/ai_agent/sms-chats/' in request.path %}active{% endif %}" 
+                                    href="{% url 'usage_analytics:usage_overview' %}">
+                                    <i class="fas fa-sms me-2 text-success"></i>Usage Analytics
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/ai_agent/agent-config/' in request.path %}active{% endif %}" 
+                                    href="{% url 'usage_analytics:sms_analytics' %}">
+                                    <i class="fas fa-cogs me-2 text-primary"></i>SMS Analytics
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/ai_agent/agent-config/' in request.path %}active{% endif %}" 
+                                    href="{% url 'usage_analytics:voice_analytics' %}">
+                                    <i class="fas fa-cogs me-2 text-primary"></i>Voice Analytics
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                {% endif %}
+                </ul>
+                    
+                <div class="d-flex align-items-center">
+                    {% if user.is_authenticated %}
+                    {% if not request.user|is_cleaner %}
+                        <div class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                                 <div class="avatar-circle me-2">
                                     <span class="avatar-initials">{{ request.user.username|make_list|first|upper }}</span>
                                 </div>
                                 <span class="d-md-inline d-none">{{ request.user.get_full_name|default:request.user.username }}</span>
+                                <span class="d-inline d-md-none">Account</span>
+                            </a>
+                
+                            
+                            <ul class="dropdown-menu dropdown-menu-lg-end">
+                                <li class="px-3 py-2 d-flex flex-column">
+                                    <span class="fw-bold">{{ request.user.get_full_name }}</span>
+                                    <span class="text-muted small">{{ request.user.email|default:"No email set" }}</span>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'accounts:profile' %}">
+                                        <i class="fas fa-user-circle me-2 text-primary"></i>Profile Settings
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'accounts:smtp_config' %}">
+                                        <i class="fas fa-envelope me-2 text-warning"></i>SMTP Config
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'accounts:payment_main' %}">
+                                        <i class="fas fa-credit-card me-2 text-success"></i>
+                                        Payments
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'subscription:subscription_management' %}">
+                                        <i class="fas fa-chart-bar me-2 text-primary"></i>Subscription
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item" href="https://support.cleaningbizai.com/" rel="noopener noreferrer" target="_blank">
+                                        <i class="fas fa-robot me-2 text-primary"></i>
+                                        Help Center
+                                    </a>
+                                </li>
+                                
+
+                                {% if request.user.is_superuser %}
+                                <li class="nav-item">
+                                    <a class="dropdown-item" 
+                                    href="{% url 'test_features' %}">
+                                        <i class="fas fa-flask me-1"></i>Test Features
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a href="{% url 'admin_dashboard:index' %}" class="dropdown-item">Admin Dashboard</a>
+                                </li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item text-danger" href="{% url 'accounts:logout' %}">
+                                        <i class="fas fa-sign-out-alt me-2"></i>Sign Out
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                        {% else %}
+                        <div class="d-flex align-items-center gap-1">
+                            <div class="avatar-circle me-2">
+                                <span class="avatar-initials">{{ request.user.username|make_list|first|upper }}</span>
                             </div>
-                            {% endif %}
-                    {% else %}
-                        <a href="{% url 'accounts:login' %}" class="btn btn-outline-primary me-2">
-                            <i class="fas fa-sign-in-alt me-1"></i>Login
-                        </a>
-                        <a href="{% url 'accounts:signup' %}" class="btn btn-primary">
-                            <i class="fas fa-user-plus me-1"></i>Get Started
-                        </a>
-                    {% endif %}
+                            <span class="d-md-inline d-none">{{ request.user.get_full_name|default:request.user.username }}</span>
+                        </div>
+                        {% endif %}
+                {% else %}
+                    <a href="{% url 'accounts:login' %}" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-sign-in-alt me-1"></i>Login
+                    </a>
+                    <a href="{% url 'accounts:signup' %}" class="btn btn-primary">
+                        <i class="fas fa-user-plus me-1"></i>Get Started
+                    </a>
+                {% endif %}
                 </div>
             </div>
         </div>
@@ -869,6 +958,28 @@
 
     <!-- Main Content -->
     <div class="container py-4">
+        {% if user.is_authenticated and user.business_set.exists %}
+        <div class="text-end mb-2">
+            <small class="text-muted">
+                <i class="fas fa-clock me-1"></i>Current time: <span id="current-business-time">{{ current_time|date:"F j, Y, g:i a" }}</span>
+                <span class="ms-1">({{ user_timezone }})</span>
+            </small>
+        </div>
+        <script>
+            // Update current business time every minute
+            function updateBusinessTime() {
+                const timeElement = document.getElementById('current-business-time');
+                if (timeElement) {
+                    const businessTimezone = document.body.dataset.businessTimezone || 'UTC';
+                    timeElement.textContent = moment().tz(businessTimezone).format('MMMM D, YYYY, h:mm A');
+                }
+            }
+            
+            // Update immediately and then every minute
+            updateBusinessTime();
+            setInterval(updateBusinessTime, 60000);
+        </script>
+        {% endif %}
         <!-- Toast container for messages -->
         <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;">
             {% if messages %}
@@ -895,11 +1006,49 @@
     </div>
 
     {% block chats %}{% endblock %}
+    
+    {% if user.is_authenticated and user.business_set.exists %}
+    {% load subscription_tags %}
+    {% get_setup_fee_status as setup_fee %}
+    {% if setup_fee %}
+    <!-- Floating Onboarding Call Button -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
+        {% if setup_fee.call_status == 'pending' %}
+        <a id="app-scheduling" href="#" class="btn btn-dark btn-lg shadow rounded-pill px-4 py-3 d-flex align-items-center" alt="Booknow button" target="_blank" data-domain-name="https://cleaningbizai.bookafy.com/schedule/?type=iframe&custom_embed=true&locale=en">
+            <i class="fas fa-phone-alt me-2"></i>
+            Schedule Onboarding Call Now</a>
+    <script id="scheduling_script" type="text/javascript" src="https://app.bookafy.com/popup-code.js"></script>
+        {% elif setup_fee.call_status == 'booked' %}
+        <div class="btn btn-success btn-lg shadow rounded-pill px-4 py-3 d-flex align-items-center">
+            <i class="fas fa-check-circle me-2"></i>
+            <span>Onboarding Call Booked</span>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% endif %}
 
     <!-- Footer -->
     <footer>
-        <div class="container text-center">
-            <p class="mb-0">&copy; {% now "Y" %} CleaningBiz AI. All rights reserved.</p>
+        <div class="container">
+            <div class="row py-3">
+                <div class="col-md-6 text-center text-md-start">
+                    <p class="mb-0">&copy; {% now "Y" %} CleaningBiz AI. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    {% if user.is_authenticated %}
+                    <p class="mb-0">
+                        <a href="{% url 'saas:submit_ticket' %}" class="text-decoration-none">
+                            <i class="fas fa-life-ring me-1"></i> Report an Issue
+                        </a>
+                        <span class="mx-2">|</span>
+                        <a href="{% url 'saas:my_tickets' %}" class="text-decoration-none">
+                            <i class="fas fa-ticket-alt me-1"></i> My Support Tickets
+                        </a>
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </footer>
 
@@ -936,5 +1085,25 @@
     </script>
 
     {% block scripts %}{% endblock %}
+    
+    {% if user.is_authenticated and user.business_set.exists %}
+    {% load subscription_tags %}
+    {% get_setup_fee_status as setup_fee %}
+    {% if setup_fee and setup_fee.call_status == 'pending' %}
+    <!-- Cal element-click embed code for floating button -->
+    <script type="text/javascript">
+      (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; if(typeof namespace === "string"){cal.ns[namespace] = cal.ns[namespace] || api;p(cal.ns[namespace], ar);p(cal, ["initNamespace", namespace]);} else p(cal, ar); return;} p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
+      Cal("init", "onboarding-call-float", {origin:"https://app.cal.com"});
+      Cal.ns["onboarding-call-float"]("ui", {"hideEventTypeDetails":false,"layout":"month_view"});
+      Cal.ns["onboarding-call-float"]("on", {
+        bookingSuccessful: function(payload) {
+          // Redirect to onboarding call success page
+          window.location.href = "{% url 'subscription:onboarding_call_success' %}";
+        }
+      });
+    </script>
+    <!-- Cal element-click embed code ends -->
+    {% endif %}
+    {% endif %}
 </body>
 </html>

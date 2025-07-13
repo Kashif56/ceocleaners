@@ -13,7 +13,8 @@ import json
 import uuid
 from square.client import Client
 
-from .models import SubscriptionPlan, BusinessSubscription, BillingHistory, Feature, Coupon, CouponUsage, UsageTracker
+from .models import SubscriptionPlan, BusinessSubscription, BillingHistory, Feature, Coupon, CouponUsage, UsageTracker, SetupFee
+from saas.models import PlatformSettings
 from accounts.models import Business
 from usage_analytics.services.usage_service import UsageService
 
@@ -40,8 +41,10 @@ def subscription_management(request):
         next_plan = None
     
     # Get all available plans (exclude invite-only plans)
-    plans = SubscriptionPlan.objects.filter(is_active=True, is_invite_only=False).order_by('price').exclude(name='Trial Plan')
+    plans = SubscriptionPlan.objects.filter(is_active=True, is_invite_only=False).order_by('sort_order', 'price').exclude(plan_tier='trial')
 
+
+   
     trial_plan = SubscriptionPlan.objects.filter(is_active=True, plan_tier='trial', is_invite_only=False).first()
     is_eligible_for_trial = False if BusinessSubscription.objects.filter(business=business, plan=trial_plan).exists() else True
     
@@ -310,7 +313,7 @@ def change_plan(request):
             
             return JsonResponse({
                 'success': True,
-                'message': f"Your subscription will be changed from {current_subscription.plan.name} to {new_plan.name} on {next_billing_date}.",
+                'message': f"Your subscription will be changed from {current_subscription.plan.display_name} to {new_plan.display_name} on {next_billing_date}.",
                 'plan_name': new_plan.name,
                 'price': str(new_plan.price),
                 'next_billing_date': next_billing_date
@@ -358,7 +361,7 @@ def cancel_subscription(request):
         
         return JsonResponse({
             'success': True,
-            'message': f"Your subscription to {subscription.plan.name} has been cancelled. You can continue using it until your next billing date on {subscription.next_billing_date.strftime('%B %d, %Y') if subscription.next_billing_date else 'the end of your current billing period'}."
+            'message': f"Your subscription to {subscription.plan.display_name} has been cancelled. You can continue using it until your next billing date on {subscription.next_billing_date.strftime('%B %d, %Y') if subscription.next_billing_date else 'the end of your current billing period'}."
         })
         
     except json.JSONDecodeError:
@@ -400,7 +403,7 @@ def get_subscription_data(request):
         
         plan_data = {
             'id': subscription.plan.id,
-            'name': subscription.plan.name,
+            'name': subscription.plan.display_name,
             'price': float(subscription.plan.price),
             'billing_cycle': subscription.plan.billing_cycle,
             'voice_minutes': subscription.plan.voice_minutes,
@@ -427,7 +430,7 @@ def get_subscription_data(request):
     for plan in SubscriptionPlan.objects.filter(is_active=True, is_invite_only=False).order_by('price'):
         available_plans.append({
             'id': plan.id,
-            'name': plan.name,
+            'name': plan.display_name,
             'price': float(plan.price),
             'billing_cycle': plan.billing_cycle,
             'voice_minutes': plan.voice_minutes,
@@ -449,19 +452,22 @@ def get_subscription_data(request):
 def select_plan(request, plan_id=None):
     """View for selecting a plan and proceeding to payment."""
     business = request.user.business_set.first()
+    
+   
+    from saas.models import PlatformSettings
+    platform_settings = PlatformSettings.objects.first()
+    
+    has_paid_setup_fee = business.has_setup_fee()
+    total_with_setup = 0
 
     if plan_id:
         # Get the specific plan
         try:
             plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
+            total_with_setup = float(plan.get_display_price()) + float(platform_settings.setup_fee_amount)
             
-            # Check if the plan is invite-only and handle accordingly
-            if plan.is_invite_only:
-                # Allow access if the user has the direct link
-                pass  # The user has the direct link since they're accessing with plan_id
-                
-            if "Trial" in plan.name and not plan.is_invite_only:
-                trial_already_availed = BusinessSubscription.objects.filter(business=business, plan__name__icontains="Trial").exists()
+            if plan.plan_tier == "trial" and not plan.is_invite_only:
+                trial_already_availed = BusinessSubscription.objects.filter(business=business, plan__plan_tier="trial").exists()
                 if trial_already_availed:
                     messages.error(request, "You have already availed the trial plan.")
                     return redirect('subscription:subscription_management')
@@ -520,7 +526,10 @@ def select_plan(request, plan_id=None):
         'square_app_id': settings.SQUARE_APP_ID,
         'environment': settings.SQUARE_ENVIRONMENT,
         'active_page': 'subscription',
-        'title': 'Select Plan'
+        'title': 'Select Plan',
+        'platform_settings': platform_settings,
+        'has_paid_setup_fee': has_paid_setup_fee,
+        'total_with_setup': total_with_setup,
     }
     
     return render(request, 'subscription/payment.html', context)
@@ -534,6 +543,17 @@ def process_payment(request, plan_id):
         plan = get_object_or_404(SubscriptionPlan, id=plan_id, is_active=True)
         business = request.user.business_set.first()
         
+        # Check if setup fee should be applied (only on first purchase)
+        platform_settings = PlatformSettings.objects.first()
+        setup_fee_amount = platform_settings.setup_fee_amount
+        apply_setup_fee = True
+        try:
+            has_setup_fee = business.has_setup_fee()
+            if has_setup_fee:
+                apply_setup_fee = False
+        except Exception as e:
+            print(f"Error checking setup fee: {str(e)}")
+        
         # Get payment details from form
         card_nonce = request.POST.get('card-nonce')
         use_existing_card = request.POST.get('use_existing_card') == 'true'
@@ -543,18 +563,18 @@ def process_payment(request, plan_id):
         coupon_code = request.POST.get('coupon_code')
         coupon = None
         
-        # Calculate price (apply yearly discount if applicable)
-        original_price = plan.price
-        final_price = original_price
-    
-        # Apply yearly discount (20% off annual price)
-        if plan.billing_cycle == 'yearly':
-            final_price = original_price * 0.8
         
-        # Apply coupon if valid
+        final_price = plan.get_display_price()
+        
+        # Add setup fee to final price if applicable
+        original_plan_price = final_price
+        if apply_setup_fee:
+            final_price += float(setup_fee_amount)
+        
+    
         if coupon_code:
             try:
-                coupon = Coupon.objects.get(code=coupon_code, is_active=True)
+                coupon = Coupon.objects.get(code=coupon_code.upper(), is_active=True)
                 
                 # Validate coupon
                 if coupon.is_valid() and coupon.is_valid_for_user(request.user):
@@ -567,7 +587,9 @@ def process_payment(request, plan_id):
                     coupon = None
             except Coupon.DoesNotExist:
                 pass
-                
+        
+        print(f"Final Price: {final_price}")
+    
         # Check if the final price is zero (free subscription)
         is_free = final_price <= 0 or is_free_subscription
         
@@ -652,7 +674,7 @@ def process_payment(request, plan_id):
                 print("No active subscription found for this business.")
             
             # Create new subscription
-            end_date = timezone.now() + timedelta(days=30 if plan.billing_cycle == 'monthly' else 365)
+            end_date = plan.get_next_billing_date()
             
             new_subscription = BusinessSubscription.objects.create(
                 business=business,
@@ -681,12 +703,28 @@ def process_payment(request, plan_id):
                     'customer_id': customer_id if customer_id else None,
                     'card_id': card_id if card_id else None,
                     'payment_status': 'COMPLETED',
-                    'coupon_code': coupon_code if coupon_code else None,
-                    'discount_amount': float(original_price - final_price) if coupon_code else 0.00,
-                    'is_free': is_free
+                    'coupon_code': coupon_code if coupon_code else "No Coupon",
+                    'discount_amount': float(original_plan_price - final_price + float(setup_fee_amount)) if coupon_code else 0.00,
+                    'is_free': is_free,
+                    'setup_fee_applied': apply_setup_fee,
+                    'setup_fee_amount': float(setup_fee_amount)
                 }
             )
+
+            print({
+                    'coupon_code': coupon_code if coupon_code else "No Coupon",
+                    'discount_amount': float(original_plan_price - final_price) if coupon_code else 0.00,
+                    'is_free': is_free,
+                    'setup_fee_applied': apply_setup_fee,
+                    'setup_fee_amount': float(setup_fee_amount)
+                })
             
+            from .models import SetupFee
+            if apply_setup_fee:
+                setup_fee_obj = SetupFee.objects.create(
+                    business=business,
+                    amount=setup_fee_amount)
+
             # Coupon usage is automatically recorded in the BusinessSubscription.save() method
             # No need to record it here to avoid double-counting
 
@@ -702,7 +740,7 @@ def process_payment(request, plan_id):
                 defaults={'metrics': {}}  # Initialize with empty metrics
             )
         
-        if 'trial' in plan.name.lower():
+        if plan.plan_type == 'trial':
             # Redirect to trial success page for trial plans
             return redirect('subscription:trial_success', subscription_id=new_subscription.id)
         
@@ -716,8 +754,15 @@ def process_payment(request, plan_id):
 @login_required
 def subscription_success(request, subscription_id, transaction_id):
     """Show subscription success page after successful payment."""
+    from .models import SetupFee
+
+    setup_fee = SetupFee.objects.filter(business=request.user.business_set.first()).first()
+
+    
     business = request.user.business_set.first()
     subscription = get_object_or_404(BusinessSubscription, id=subscription_id, business=business)
+
+    is_first_purchase = BusinessSubscription.objects.filter(business=business).exists() == 1
     
     # Get billing history record for this transaction to show payment details
     billing_record = BillingHistory.objects.filter(
@@ -727,11 +772,13 @@ def subscription_success(request, subscription_id, transaction_id):
     
     # Initialize payment details
     payment_details = {
-        'original_price': subscription.plan.price,
+        'original_price': subscription.plan.get_display_price(),
         'discount_amount': 0,
-        'final_amount': subscription.plan.price,
+        'final_amount': subscription.plan.get_display_price(),
         'coupon_code': None,
-        'coupon_applied': False
+        'coupon_applied': False,
+        'setup_fee_applied': False,
+        'setup_fee_amount': 0
     }
     
     # If we have billing record with details, use that information
@@ -744,13 +791,27 @@ def subscription_success(request, subscription_id, transaction_id):
             payment_details['discount_amount'] = billing_record.details.get('discount_amount', 0)
             payment_details['original_price'] = billing_record.amount
             payment_details['coupon_applied'] = True
+        
+        # Check if setup fee was applied
+        if billing_record.details and 'setup_fee_applied' in billing_record.details:
+            payment_details['setup_fee_applied'] = billing_record.details.get('setup_fee_applied', False)
+            payment_details['setup_fee_amount'] = billing_record.details.get('setup_fee_amount', 0)
+    
+    # Count active business subscriptions
+    business_subscriptions_count = BusinessSubscription.objects.filter(
+        business=business,
+        is_active=True
+    ).count()
     
     context = {
         'subscription': subscription,
         'transaction_id': transaction_id,
         'payment_details': payment_details,
         'active_page': 'subscription',
-        'title': 'Subscription Successful'
+        'title': 'Subscription Successful',
+        'business_subscriptions_count': business_subscriptions_count,
+        'setup_fee': setup_fee,
+
     }
     
     return render(request, 'subscription/success.html', context)
@@ -762,7 +823,7 @@ def trial_success(request, subscription_id):
     subscription = get_object_or_404(BusinessSubscription, id=subscription_id, business=business)
     
     # Calculate trial end date
-    trial_end_date = subscription.start_date + timedelta(days=30)
+    trial_end_date = subscription.plan.get_next_billing_date()
     
     context = {
         'subscription': subscription,
@@ -825,7 +886,7 @@ def validate_coupon(request):
     
     try:
         # Get the coupon and plan
-        coupon = Coupon.objects.get(code=code, is_active=True)
+        coupon = Coupon.objects.get(code=code.upper(), is_active=True)
         plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
         
         # Check if the coupon is valid for this user and plan
@@ -1130,3 +1191,21 @@ def delete_card(request):
     
     # Redirect back to the card management page
     return redirect('subscription:manage_card')
+
+@login_required
+def onboarding_call_success(request):
+    """Show success page after booking an onboarding call."""
+    business = request.user.business_set.first()
+    
+    # Update the call status to 'booked'
+    setup_fee = SetupFee.objects.filter(business=business).first()
+    if setup_fee:
+        setup_fee.call_status = 'booked'
+        setup_fee.save()
+    
+    context = {
+        'active_page': 'subscription',
+        'title': 'Onboarding Call Booked',
+    }
+    
+    return render(request, 'subscription/onboarding_call_success.html', context)

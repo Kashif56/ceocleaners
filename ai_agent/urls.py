@@ -20,6 +20,7 @@ urlpatterns = [
     # New unified agent configuration pages
     path('agent-config/', views.agent_config_unified, name='agent_config'),
     path('agent-config/save/', views.agent_config_save, name='agent_config_save'),
+    path('embed-agent/', views.embed_agent, name='embed_agent'),
     
     # Business credentials API
     path('api/business/credentials/', views.business_credentials_api, name='business_credentials_api'),

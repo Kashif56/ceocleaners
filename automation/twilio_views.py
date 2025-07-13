@@ -9,7 +9,6 @@ from accounts.models import ApiCredential, Business
 import logging
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
-from leadsAutomation.logger import log_message
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +68,7 @@ def search_twilio_numbers(request):
         search_params['sms_enabled'] = True
         search_params['exclude_all_address_required'] = True  # Exclude numbers that require an address
         
-        log_message('info', f"Searching for SMS-capable numbers in {country}", {'search_params': search_params})
+      
         
         # Search for available phone numbers
         available_numbers = client.available_phone_numbers(country).local.list(**search_params)
@@ -91,10 +90,8 @@ def search_twilio_numbers(request):
         return JsonResponse({'numbers': numbers})
     
     except TwilioRestException as e:
-        log_message('error', f"Error searching for Twilio numbers", {'error': str(e)})
         return JsonResponse({'error': f"Twilio error: {str(e)}"}, status=400)
     except Exception as e:
-        log_message('error', f"Error searching for Twilio numbers", {'error': str(e)})
         return JsonResponse({'error': f"Error: {str(e)}"}, status=500)
 
 @login_required
@@ -148,10 +145,8 @@ def purchase_twilio_number(request):
         })
     
     except TwilioRestException as e:
-        log_message('error', f"Error purchasing Twilio number", {'error': str(e)})
         return JsonResponse({'error': f"Twilio error: {str(e)}"}, status=400)
     except Exception as e:
-        log_message('error', f"Error purchasing Twilio number", {'error': str(e)})
         return JsonResponse({'error': f"Error: {str(e)}"}, status=500)
 
 @login_required
@@ -194,10 +189,10 @@ def get_twilio_numbers(request):
         return JsonResponse({'numbers': numbers})
     
     except TwilioRestException as e:
-        log_message('error', f"Twilio error: {str(e)}")
+      
         return JsonResponse({'error': f"Twilio error: {str(e)}"}, status=400)
     except Exception as e:
-        log_message('error', f"Error getting Twilio numbers", {'error': str(e)})
+      
         return JsonResponse({'error': f"Error: {str(e)}"}, status=500)
 
 @login_required
@@ -246,10 +241,8 @@ def update_twilio_webhook(request):
         })
     
     except TwilioRestException as e:
-        log_message('error', f"Twilio error: {str(e)}")
         return JsonResponse({'error': f"Twilio error: {str(e)}"}, status=400)
     except Exception as e:
-        log_message('error', f"Error updating Twilio webhook", {'error': str(e)})
         return JsonResponse({'error': f"Error: {str(e)}"}, status=500)
 
 @login_required
@@ -262,12 +255,12 @@ def set_active_number(request):
     if not business:
         return JsonResponse({'error': 'Business not found'}, status=400)
     
-    log_message('info', 'Attempting to set active Twilio number.', {'business': business})
+
     
     try:
         api_credential = ApiCredential.objects.get(business=business)
     except ApiCredential.DoesNotExist:
-        log_message('warning', 'Twilio credentials not found.', {'business': business})
+     
         return JsonResponse({'error': 'Twilio credentials not found'}, status=400)
     
     # Get the phone number to set as active
@@ -275,7 +268,6 @@ def set_active_number(request):
     phone_number = data.get('phone_number')
     
     if not phone_number:
-        log_message('warning', 'Phone number is required.', {'business': business})
         return JsonResponse({'error': 'Phone number is required'}, status=400)
     
     try:
@@ -283,7 +275,6 @@ def set_active_number(request):
         api_credential.twilioSmsNumber = phone_number
         api_credential.save()
 
-        log_message('info', 'Active Twilio number set successfully.', {'business': business, 'phone_number': phone_number, 'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
         
         return JsonResponse({
             'success': True,
@@ -291,5 +282,5 @@ def set_active_number(request):
         })
     
     except Exception as e:
-        log_message('error', f"Error setting active Twilio number", {'error': str(e)})
+        print(e)
         return JsonResponse({'error': f"Error: {str(e)}"}, status=500)

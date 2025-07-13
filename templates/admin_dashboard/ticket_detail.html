@@ -1,0 +1,307 @@
+{% extends 'admin_dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Ticket #{{ ticket.id }}{% endblock %}
+
+{% block styles %}
+<style>
+    .ticket-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    .ticket-card:hover {
+        box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    }
+    .ticket-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+    .description-box {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #4e73df;
+        padding: 1.25rem;
+    }
+    .comment {
+        transition: all 0.2s ease;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+    }
+    .comment:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .staff-comment {
+        background-color: #f8f9fa;
+        border-left: 4px solid #4e73df;
+    }
+    .internal-comment {
+        background-color: #fff3cd;
+        border-left: 4px solid #ffc107;
+    }
+    .user-comment {
+        background-color: white;
+        border-left: 4px solid #6c757d;
+    }
+    .comment-form {
+        background-color: #fff;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    .attachment-preview {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .ticket-info-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #e3e6f0;
+    }
+    .ticket-info-item:last-child {
+        border-bottom: none;
+    }
+    .ticket-header {
+        background-color: #4e73df;
+        color: white;
+        border-radius: 12px 12px 0 0;
+        padding: 1.25rem;
+    }
+    .action-form {
+        padding: 1rem 0;
+        border-bottom: 1px solid #e3e6f0;
+    }
+    .action-form:last-child {
+        border-bottom: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800">Ticket #{{ ticket.id }}</h1>
+        <a href="{% url 'admin_dashboard:support_tickets' %}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Tickets
+        </a>
+    </div>
+    
+    <div class="row">
+        <!-- Ticket Details -->
+        <div class="col-lg-8">
+            <div class="card ticket-card mb-4">
+                <div class="card-header ticket-header d-flex flex-row align-items-center justify-content-between">
+                    <h5 class="m-0 font-weight-bold">{{ ticket.title }}</h5>
+                    <span class="ticket-badge {% if ticket.status == 'new' %}bg-info{% elif ticket.status == 'in_progress' %}bg-warning{% elif ticket.status == 'resolved' %}bg-success{% else %}bg-secondary{% endif %} text-white">
+                        {{ ticket.get_status_display }}
+                    </span>
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-4">
+                        <h6 class="font-weight-bold mb-3">Description</h6>
+                        <div class="description-box">{{ ticket.description|linebreaks }}</div>
+                    </div>
+                    
+                    {% if ticket.screenshot %}
+                    <div class="mb-4">
+                        <h6 class="font-weight-bold">Screenshot</h6>
+                        <a href="{{ ticket.screenshot.url }}" target="_blank">
+                            <img src="{{ ticket.screenshot.url }}" class="img-fluid attachment-preview" style="max-height: 300px;" alt="Screenshot">
+                        </a>
+                    </div>
+                    {% endif %}
+                    
+                    {% if ticket.browser_info %}
+                    <div class="mb-4">
+                        <h6 class="font-weight-bold">Browser Information</h6>
+                        <pre class="bg-light p-3 rounded description-box">{{ ticket.browser_info }}</pre>
+                    </div>
+                    {% endif %}
+                    
+                    {% if ticket.url %}
+                    <div class="mb-4">
+                        <h6 class="font-weight-bold">URL</h6>
+                        <a href="{{ ticket.url }}" target="_blank">{{ ticket.url }}</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Comments Section -->
+            <div class="card ticket-card mb-4">
+                <div class="card-header ticket-header">
+                    <h5 class="m-0 font-weight-bold">Comments</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="comments-list">
+                        {% for comment in comments %}
+                        <div class="comment p-4 {% if comment.is_internal %}internal-comment{% elif comment.author.is_staff %}staff-comment{% else %}user-comment{% endif %}">
+                            <div class="d-flex justify-content-between mb-2">
+                                <div>
+                                    <strong>{{ comment.author.get_full_name }}</strong>
+                                    {% if comment.is_internal %}
+                                    <span class="badge bg-warning text-dark ms-2">Internal Note</span>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">{{ comment.created_at|date:"M d, Y H:i" }}</small>
+                            </div>
+                            <p class="mb-2">{{ comment.content|linebreaks }}</p>
+                            {% if comment.attachment %}
+                            <div class="mt-2">
+                                <a href="{{ comment.attachment.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                    <i class="fas fa-paperclip me-2"></i> View Attachment
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% empty %}
+                        <p class="text-center text-muted">No comments yet.</p>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Add Comment Form -->
+                    <form method="post" enctype="multipart/form-data" class="mt-4 comment-form" id="commentForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="add_comment">
+                        
+                        <div class="form-group mb-3">
+                            <label for="content" class="form-label">Add a Comment</label>
+                            <textarea class="form-control" id="content" name="content" rows="4" required></textarea>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="attachment" class="form-label">Attachment (optional)</label>
+                            <input type="file" class="form-control" id="attachment" name="attachment">
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" id="is_internal" name="is_internal">
+                            <label class="form-check-label" for="is_internal">Internal note (only visible to staff)</label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i> Submit Comment
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Ticket Management -->
+        <div class="col-lg-4">
+            <!-- Ticket Info -->
+            <div class="card ticket-card mb-4">
+                <div class="card-header ticket-header">
+                    <h5 class="m-0 font-weight-bold">Ticket Information</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="ticket-info-item">
+                        <strong>Submitted By:</strong>
+                        <p class="mb-0 mt-1">{{ ticket.created_by.get_full_name }} <br><small class="text-muted">{{ ticket.created_by.email }}</small></p>
+                    </div>
+                    
+                    {% if ticket.business %}
+                    <div class="ticket-info-item">
+                        <strong>Business:</strong>
+                        <p class="mb-0 mt-1">{{ ticket.business.name }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="ticket-info-item">
+                        <strong>Category:</strong>
+                        <p class="mb-0 mt-1">{{ ticket.get_category_display }}</p>
+                    </div>
+                    
+                    <div class="ticket-info-item">
+                        <strong>Priority:</strong>
+                        <p class="mb-0 mt-1">
+                            <span class="badge {% if ticket.priority == 'low' %}bg-success{% elif ticket.priority == 'medium' %}bg-info{% elif ticket.priority == 'high' %}bg-warning{% else %}bg-danger{% endif %} text-white ticket-badge">
+                                {{ ticket.get_priority_display }}
+                            </span>
+                        </p>
+                    </div>
+                    
+                    <div class="ticket-info-item">
+                        <strong>Created:</strong>
+                        <p class="mb-0 mt-1">{{ ticket.created_at|date:"M d, Y H:i" }}</p>
+                    </div>
+                    
+                    {% if ticket.resolved_at %}
+                    <div class="ticket-info-item">
+                        <strong>Resolved:</strong>
+                        <p class="mb-0 mt-1">{{ ticket.resolved_at|date:"M d, Y H:i" }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Status Management -->
+            <div class="card ticket-card mb-4">
+                <div class="card-header ticket-header">
+                    <h5 class="m-0 font-weight-bold">Manage Ticket</h5>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Update Status -->
+                    <form method="post" class="action-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_status">
+                        
+                        <div class="form-group mb-3">
+                            <label for="status" class="form-label"><strong>Status</strong></label>
+                            <select class="form-select form-control" id="status" name="status">
+                                <option value="new" {% if ticket.status == 'new' %}selected{% endif %}>New</option>
+                                <option value="in_progress" {% if ticket.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                                <option value="resolved" {% if ticket.status == 'resolved' %}selected{% endif %}>Resolved</option>
+                                <option value="closed" {% if ticket.status == 'closed' %}selected{% endif %}>Closed</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Update Status</button>
+                    </form>
+                    
+                    <!-- Update Priority -->
+                    <form method="post" class="action-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_priority">
+                        
+                        <div class="form-group mb-3">
+                            <label for="priority" class="form-label"><strong>Priority</strong></label>
+                            <select class="form-select form-control" id="priority" name="priority">
+                                <option value="low" {% if ticket.priority == 'low' %}selected{% endif %}>Low</option>
+                                <option value="medium" {% if ticket.priority == 'medium' %}selected{% endif %}>Medium</option>
+                                <option value="high" {% if ticket.priority == 'high' %}selected{% endif %}>High</option>
+                                <option value="critical" {% if ticket.priority == 'critical' %}selected{% endif %}>Critical</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Update Priority</button>
+                    </form>
+                    
+                    <!-- Assign Ticket -->
+                    <form method="post" class="action-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="assign">
+                        
+                        <div class="form-group mb-3">
+                            <label for="assigned_to" class="form-label"><strong>Assign To</strong></label>
+                            <select class="form-select form-control" id="assigned_to" name="assigned_to">
+                                <option value="">-- Unassigned --</option>
+                                {% for user in staff_users %}
+                                <option value="{{ user.id }}" {% if ticket.assigned_to == user %}selected{% endif %}>
+                                    {{ user.get_full_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Update Assignment</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

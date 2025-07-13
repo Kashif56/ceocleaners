@@ -147,14 +147,27 @@ def calculate_total(business, client_phone_number=None, session_key=None):
         return {"success": False, "error": str(e)}
 
 
-def get_current_time_in_chicago():
-    """Get the current time in Chicago timezone with additional context"""
+def get_current_time_in_chicago(business=None):
+    """Get the current time in business timezone with additional context"""
     try:
-        chicago_tz = pytz.timezone('America/Chicago')
-        current_time = datetime.now(chicago_tz)
+        # Get business timezone if available, otherwise default to Chicago
+        timezone_name = 'America/Chicago'
+        timezone_display = 'Central Time'
+        
+        if business:
+            try:
+                timezone_name = business.timezone
+                timezone_obj = pytz.timezone(timezone_name)
+                timezone_display = timezone_obj.localize(datetime.now()).tzname()
+            except Exception as e:
+                print(f"Error getting business timezone: {str(e)}")
+        
+        # Get current time in the specified timezone
+        tz = pytz.timezone(timezone_name)
+        current_time = datetime.now(tz)
         formatted_time = current_time.strftime('%Y-%m-%d %I:%M %p')
         day_of_week = current_time.strftime('%A')
-        result = f"{formatted_time} ({day_of_week}) Central Time"
+        result = f"{formatted_time} ({day_of_week}) {timezone_display}"
         return result
     except Exception as e:
         print(f"[ERROR] Error getting current time: {str(e)}")
@@ -167,12 +180,22 @@ def check_availability(business, date_string):
         if not date_string:
             return {"success": False, "error": "Missing datetime parameter"}
         
-        
-        converted_datetime = convert_date_str_to_date(date_string)
+        # Pass business to convert_date_str_to_date to use business timezone
+        converted_datetime = convert_date_str_to_date(date_string, business)
         converted_datetime = converted_datetime.strip()
         
         try:
+            # Parse the datetime string into a datetime object
             parsed_datetime = datetime.fromisoformat(converted_datetime)
+            
+            # Make sure the datetime is timezone-aware in the business's timezone
+            business_timezone = business.get_timezone()
+            if parsed_datetime.tzinfo is None:
+                # If the datetime is naive, make it aware in the business timezone
+                parsed_datetime = business_timezone.localize(parsed_datetime)
+            else:
+                # If it already has timezone info, convert to business timezone
+                parsed_datetime = parsed_datetime.astimezone(business_timezone)
         except Exception as e:
             return {"success": False, "error": f"Invalid date format: {str(e)}"}
 
@@ -324,18 +347,37 @@ def book_appointment(business, client_phone_number=None, session_key=None):
         
        
         
-        # Parse appointment datetime
+        # Parse appointment datetime with business timezone
         try:
-            # Try different date formats
-            converted_datetime = convert_date_str_to_date(data["appointmentDateTime"])
+            # Convert date string using business timezone
+            converted_datetime = convert_date_str_to_date(data["appointmentDateTime"], business)
             
             # Strip any whitespace including newlines and then parse
             converted_datetime = converted_datetime.strip()
-            cleaningDateTime = datetime.fromisoformat(converted_datetime)
             
-            cleaningDate = cleaningDateTime.date()
-            startTime = cleaningDateTime.time()
-            endTime = (cleaningDateTime + timedelta(hours=1)).time()
+            # Parse the datetime string
+            local_datetime = datetime.fromisoformat(converted_datetime)
+            
+            # Make sure the datetime is timezone-aware in the business's timezone
+            business_timezone = business.get_timezone()
+            if local_datetime.tzinfo is None:
+                # If the datetime is naive, make it aware in the business timezone
+                local_datetime = business_timezone.localize(local_datetime)
+            else:
+                # If it already has timezone info, convert to business timezone
+                local_datetime = local_datetime.astimezone(business_timezone)
+            
+            # Convert to UTC for storage in the database
+            from bookings.timezone_utils import convert_to_utc
+            utc_datetime = convert_to_utc(local_datetime, business_timezone)
+            
+            # Calculate end time (1 hour after start time) in UTC
+            utc_end_datetime = utc_datetime + timedelta(hours=1)
+            
+            # Extract date and time components from UTC datetime
+            cleaningDate = utc_datetime.date()
+            startTime = utc_datetime.time()
+            endTime = utc_end_datetime.time()
         
         except Exception as e:
             error_msg = f"Invalid appointment date/time format: {str(e)}"
@@ -343,7 +385,7 @@ def book_appointment(business, client_phone_number=None, session_key=None):
         
         # Find available cleaner for the booking
         cleaners = get_cleaners_for_business(business, assignment_check_null=True)
-        available_cleaner = find_available_cleaner(cleaners, cleaningDateTime)
+        available_cleaner = find_available_cleaner(cleaners, utc_datetime)
                 
         if not available_cleaner:
             error_msg = "No cleaners available for the requested time"
@@ -408,6 +450,15 @@ def book_appointment(business, client_phone_number=None, session_key=None):
             chat.save()
         except Exception as e:
             print(f"[ERROR] Failed to update chat summary with booking ID: {str(e)}")
+            
+        # Send jobs to cleaners
+        try:
+            from bookings.utils import send_jobs_to_cleaners
+            send_jobs_to_cleaners(business, newBooking)
+            print(f"[INFO] Jobs sent to cleaners for booking {newBooking.bookingId}")
+        except Exception as e:
+            print(f"[ERROR] Failed to send jobs to cleaners: {str(e)}")
+            traceback.print_exc()
         
         # Return success response
         return {
@@ -429,24 +480,43 @@ def reschedule_appointment(business, booking_id, new_date_time):
         booking = Booking.objects.get(bookingId=booking_id, business=business)
         cleaners = get_cleaners_for_business(business)
 
-        converted_datetime = convert_date_str_to_date(new_date_time)
+        # Convert date string using business timezone
+        converted_datetime = convert_date_str_to_date(new_date_time, business)
         converted_datetime = converted_datetime.strip()
         
         try:
-            parsed_datetime = datetime.fromisoformat(converted_datetime)
+            # Parse the datetime string
+            local_datetime = datetime.fromisoformat(converted_datetime)
+            
+            # Make sure the datetime is timezone-aware in the business's timezone
+            business_timezone = business.get_timezone()
+            if local_datetime.tzinfo is None:
+                # If the datetime is naive, make it aware in the business timezone
+                local_datetime = business_timezone.localize(local_datetime)
+            else:
+                # If it already has timezone info, convert to business timezone
+                local_datetime = local_datetime.astimezone(business_timezone)
+            
+            # Convert to UTC for availability check and storage
+            from bookings.timezone_utils import convert_to_utc
+            utc_datetime = convert_to_utc(local_datetime, business_timezone)
+            
+            # Calculate end time (1 hour after start time) in UTC
+            utc_end_datetime = utc_datetime + timedelta(hours=1)
         except Exception as e:
             return {"success": False, "error": f"Invalid date format: {str(e)}"}
     
-        is_available, _ = is_slot_available(cleaners, parsed_datetime)
+        # Check availability using UTC datetime
+        is_available, _ = is_slot_available(cleaners, utc_datetime)
         
         if not is_available:
             error_msg = "The requested time is not available"
             return {"success": False, "error": error_msg}
         
-       
-        booking.cleaningDate = parsed_datetime.date()
-        booking.startTime = parsed_datetime.time()
-        booking.endTime = (parsed_datetime + timedelta(hours=1)).time()
+        # Save UTC date and times to booking
+        booking.cleaningDate = utc_datetime.date()
+        booking.startTime = utc_datetime.time()
+        booking.endTime = utc_end_datetime.time()
         booking.save()
         
        
@@ -515,9 +585,20 @@ def send_reschedule_email(booking):
         # Create email content
         subject = f"Your Appointment Has Been Rescheduled - {business.businessName}"
         
-        # Format the date and time for display
-        appointment_date = booking.cleaningDate.strftime("%A, %B %d, %Y")
-        appointment_time = booking.startTime.strftime("%I:%M %p")
+        # Convert UTC date and time to business timezone for display
+        # Get business timezone
+        business_timezone = business.get_timezone()
+        
+        # Create datetime objects in UTC
+        utc_datetime = datetime.combine(booking.cleaningDate, booking.startTime)
+        utc_datetime = pytz.utc.localize(utc_datetime) if utc_datetime.tzinfo is None else utc_datetime
+        
+        # Convert to business timezone
+        local_datetime = utc_datetime.astimezone(business_timezone)
+        
+        # Format the local date and time for display
+        appointment_date = local_datetime.strftime("%A, %B %d, %Y")
+        appointment_time = local_datetime.strftime("%I:%M %p")
         
         # Create HTML email
         html_content = f"""
@@ -633,9 +714,20 @@ def send_cancel_email(booking):
         # Create email content
         subject = f"Your Appointment Has Been Canceled - {business.businessName}"
         
-        # Format the date and time for display
-        appointment_date = booking.cleaningDate.strftime("%A, %B %d, %Y")
-        appointment_time = booking.startTime.strftime("%I:%M %p")
+        # Convert UTC date and time to business timezone for display
+        # Get business timezone
+        business_timezone = business.get_timezone()
+        
+        # Create datetime objects in UTC
+        utc_datetime = datetime.combine(booking.cleaningDate, booking.startTime)
+        utc_datetime = pytz.utc.localize(utc_datetime) if utc_datetime.tzinfo is None else utc_datetime
+        
+        # Convert to business timezone
+        local_datetime = utc_datetime.astimezone(business_timezone)
+        
+        # Format the local date and time for display
+        appointment_date = local_datetime.strftime("%A, %B %d, %Y")
+        appointment_time = local_datetime.strftime("%I:%M %p")
         
         # Create HTML email
         html_content = f"""

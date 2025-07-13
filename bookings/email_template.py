@@ -1,4 +1,7 @@
 
+import datetime
+import pytz
+
 def get_email_template(booking, to, when):
     business = booking.business
     cleaner = None
@@ -7,6 +10,25 @@ def get_email_template(booking, to, when):
 
     cleaner_or_business = cleaner.name if cleaner else business.businessName
     name = cleaner.name if cleaner else booking.firstName + ' ' + booking.lastName
+    
+    # Convert UTC date and time to business timezone for display
+    business_timezone = business.get_timezone()
+    
+    # Create datetime objects in UTC
+    utc_start_datetime = datetime.datetime.combine(booking.cleaningDate, booking.startTime)
+    utc_start_datetime = pytz.utc.localize(utc_start_datetime) if utc_start_datetime.tzinfo is None else utc_start_datetime
+    
+    utc_end_datetime = datetime.datetime.combine(booking.cleaningDate, booking.endTime)
+    utc_end_datetime = pytz.utc.localize(utc_end_datetime) if utc_end_datetime.tzinfo is None else utc_end_datetime
+    
+    # Convert to business timezone
+    local_start_datetime = utc_start_datetime.astimezone(business_timezone)
+    local_end_datetime = utc_end_datetime.astimezone(business_timezone)
+    
+    # Format the local date and time for display
+    local_date = local_start_datetime.strftime('%A, %B %d, %Y')
+    local_start_time = local_start_datetime.strftime('%I:%M %p')
+    local_end_time = local_end_datetime.strftime('%I:%M %p')
     email_template = f"""
             <!DOCTYPE html>
             <html>
@@ -43,11 +65,11 @@ def get_email_template(booking, to, when):
                                 </tr>
                                 <tr>
                                     <td>Date:</td>
-                                    <td>{booking.cleaningDate.strftime('%A, %B %d, %Y')}</td>
+                                    <td>{local_date}</td>
                                 </tr>
                                 <tr>
                                     <td>Time:</td>
-                                    <td>{booking.startTime.strftime('%I:%M %p')} - {booking.endTime.strftime('%I:%M %p')}</td>
+                                    <td>{local_start_time} - {local_end_time}</td>
                                 </tr>
                                 <tr>
                                     <td>Address:</td>

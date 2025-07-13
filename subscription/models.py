@@ -5,20 +5,45 @@ from accounts.models import Business
 from django.conf import settings
 import json
 from datetime import datetime, timedelta
+from django.utils.text import slugify
 
 User = get_user_model()
 
 class SubscriptionPlan(models.Model):
     """Model representing the different subscription plans available."""
     BILLING_CYCLE_CHOICES = [
+        ('14_days', '14 Days'),
         ('monthly', 'Monthly'),
+        ('2_months', '2 Months'),
+        ('3_months', '3 Months'),
+        ('6_months', '6 Months'),
         ('yearly', 'Yearly'),
+        ('lifetime', 'Lifetime'),
+    ]
+
+    PLAN_TYPE_CHOICES = [
+        ('free', 'Free'),
+        ('paid', 'Paid'),
+        ('trial', 'Trial'),
     ]
     
-    name = models.CharField(max_length=100)
+    PLAN_TIER_CHOICES = [
+        ('starter', 'Starter'),
+        ('professional', 'Professional'),
+        ('enterprise', 'Enterprise'),
+        ('trial', 'Trial'),
+        ('custom', 'Custom'),
+    ]
+
+ 
+    name = models.CharField(max_length=100, help_text="Internal name for the plan", default="")
+    display_name = models.CharField(max_length=100, help_text="Name displayed to users")
     description = models.TextField(blank=True, null=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     billing_cycle = models.CharField(max_length=10, choices=BILLING_CYCLE_CHOICES, default='monthly')
+    plan_type = models.CharField(max_length=10, choices=PLAN_TYPE_CHOICES, default='paid')
+    plan_tier = models.CharField(max_length=15, choices=PLAN_TIER_CHOICES, default='starter', help_text="The tier of the plan (Starter, Professional, Enterprise, etc.)")
+    sort_order = models.PositiveSmallIntegerField(default=0, help_text="Order in which plans should be displayed (lower numbers first)")
     is_active = models.BooleanField(default=True)
     is_invite_only = models.BooleanField(default=False, help_text="If enabled, this plan will only be available to users with a direct link")
     
@@ -36,7 +61,8 @@ class SubscriptionPlan(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return f"{self.name} ({self.billing_cycle})"
+        return f"{self.display_name} ({self.get_billing_cycle_display()})"
+
     
 
     def get_invite_plan_url(self):
@@ -52,6 +78,32 @@ class SubscriptionPlan(models.Model):
             return round(discounted_price, 2)
         
         return float(self.price)
+    
+    def get_display_price(self):
+        """Get the yearly display price for monthly plans with 20% discount applied."""
+        if self.billing_cycle == 'yearly' or self.billing_cycle == 'Yearly':
+           
+            discounted_price = float(self.price) * float(0.8)
+            return round(discounted_price, 2)
+        
+        return float(self.price)
+
+    def get_display_label(self):
+        if self.billing_cycle == 'yearly' or self.billing_cycle == 'Yearly':
+            return f"/year"
+        if self.billing_cycle == 'monthly' or self.billing_cycle == 'Monthly':
+            return f"/month"
+        if self.billing_cycle == '2_months' or self.billing_cycle == '2 Months':
+            return f"/2 months"
+        if self.billing_cycle == '3_months' or self.billing_cycle == '3 Months':
+            return f"/3 months"
+        if self.billing_cycle == '6_months' or self.billing_cycle == '6 Months':
+            return f"/6 months"
+        
+        if self.plan_tier == 'trial' or self.plan_tier == 'Trial':
+            return ""
+        
+        return ""
     
     def get_monthly_display_limits(self):
         """Get the monthly limits for yearly plans (yearly limits / 12)."""
@@ -70,6 +122,23 @@ class SubscriptionPlan(models.Model):
             'leads': self.leads,
             'cleaners': self.cleaners
         }
+    
+
+    def get_next_billing_date(self):
+        if self.billing_cycle == 'monthly' or self.billing_cycle == 'Monthly':
+            return timezone.now() + timedelta(days=30)
+        elif self.billing_cycle == 'yearly' or self.billing_cycle == 'Yearly':
+            return timezone.now() + timedelta(days=365)
+        elif self.billing_cycle == '2_months' or self.billing_cycle == '2 Months':
+            return timezone.now() + timedelta(days=60)
+        elif self.billing_cycle == '3_months' or self.billing_cycle == '3 Months':
+            return timezone.now() + timedelta(days=90)
+        elif self.billing_cycle == '6_months' or self.billing_cycle == '6 Months':
+            return timezone.now() + timedelta(days=180)
+        elif self.billing_cycle == '14_days' or self.billing_cycle == '14 Days':
+            return timezone.now() + timedelta(days=14)
+        
+        return timezone.now() + timedelta(days=30)
 
 
 class Feature(models.Model):
@@ -438,3 +507,20 @@ class BillingHistory(models.Model):
     
     def __str__(self):
         return f"Invoice #{self.id} - {self.business.businessName} (${self.amount})"
+
+
+CALL_STATUS_CHOICES = [
+    ('booked', 'Booked'),
+    ('completed', 'Completed'),
+    ('pending', 'Pending'),
+]
+
+class SetupFee(models.Model):
+    business = models.OneToOneField(Business, on_delete=models.CASCADE, related_name='setup_fee')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    call_status = models.CharField(max_length=20, choices=CALL_STATUS_CHOICES, default='pending')
+    pait_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Setup Fee for {self.business.businessName} - ${self.amount}"
+    

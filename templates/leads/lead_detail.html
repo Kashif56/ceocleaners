@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load split_filter %}
 {% load json_format_filter %}
+{% load timezone_tags %}
 
 
 {% block content %}
@@ -66,10 +67,10 @@
                                 <h5 class="text-primary mb-0">Lead Overview</h5>
                                 <div class="lead-timestamps">
                                     <span class="text-muted small me-3">
-                                        <i class="fas fa-calendar-alt me-1"></i>Created: {{ lead.createdAt|date:"M d, Y" }}
+                                        <i class="fas fa-calendar-alt me-1"></i>Created: <span data-utc-datetime="{{ lead.createdAt|date:'c' }}">{{ lead.createdAt|to_business_timezone:user_timezone|date:"M d, Y" }}</span>
                                     </span>
                                     <span class="text-muted small">
-                                        <i class="fas fa-clock me-1"></i>Updated: {{ lead.updatedAt|date:"M d, Y" }}
+                                        <i class="fas fa-clock me-1"></i>Updated: <span data-utc-datetime="{{ lead.updatedAt|date:'c' }}">{{ lead.updatedAt|to_business_timezone:user_timezone|date:"M d, Y" }}</span>
                                     </span>
                                 </div>
                             </div>

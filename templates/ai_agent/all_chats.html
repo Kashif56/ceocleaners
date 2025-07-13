@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-
+{% load timezone_tags %}
 {% block title %}SMS Conversations - {{ business.businessName }}{% endblock %}
 
 {% block styles %}
@@ -857,7 +857,7 @@
                         </div>
                     
                     <div class="conversation-meta">
-                        <div class="conversation-time">{{ chat.updatedAt|date:"M d" }}</div>
+                        <div class="conversation-time">{{ chat.updatedAt|to_business_timezone:user_timezone|date:"M d" }}</div>
                             {% if chat.status == 'pending' %}
                         <span class="status-badge badge-pending">
                             <span class="status-dot pending"></span>Pending
@@ -1434,16 +1434,20 @@
                                 const messageEl = document.createElement('div');
                                 messageEl.className = `message ${message.role === 'user' ? 'outgoing' : 'incoming'}`;
                                 
-                                const timeFormatted = new Date(message.createdAt).toLocaleTimeString('en-US', {
+                                // Use the already defined messageDate from above
+                                // Format the time - this will be displayed initially before Django processes it
+                                const timeFormatted = messageDate.toLocaleTimeString('en-US', {
                                     hour: 'numeric',
                                     minute: '2-digit',
                                     hour12: true
                                 });
                                 
+                                // Store the original UTC timestamp as a data attribute for potential server-side processing
+                                // The timestamp is already formatted in the client's local timezone
                                 messageEl.innerHTML = `
                                     <div class="message-content">
                                         <div class="message-text">${message.message.replace(/\n/g, '<br>')}</div>
-                                        <div class="message-time">${timeFormatted}</div>
+                                        <div class="message-time" data-utc-time="${message.createdAt}">${timeFormatted}</div>
                                     </div>
                                 `;
                                 

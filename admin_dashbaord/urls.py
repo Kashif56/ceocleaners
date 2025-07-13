@@ -1,5 +1,8 @@
 from django.urls import path
 from . import views
+from . import saas_views
+from . import billing_views
+from . import activity_views
 
 app_name = 'admin_dashboard'
 
@@ -46,8 +49,16 @@ urlpatterns = [
     
     # Subscription Management
     path('subscriptions/', views.subscriptions, name='subscriptions'),
+    path('subscriptions/<int:subscription_id>/', views.subscription_detail, name='subscription_detail'),
     path('subscriptions/assign/', views.assign_subscription, name='assign_subscription'),
     path('subscriptions/admin-cancel-plan/', views.admin_cancel_plan, name='admin_cancel_plan'),
+    
+    # Platform Settings
+    path('platform-settings/', saas_views.platform_settings, name='platform_settings'),
+    
+    # Support Tickets
+    path('support-tickets/', saas_views.support_tickets, name='support_tickets'),
+    path('support-tickets/<int:ticket_id>/', saas_views.ticket_detail, name='ticket_detail'),
     path('subscriptions/admin-change-plan/', views.admin_change_plan, name='admin_change_plan'),
     
     # User Management
@@ -57,6 +68,14 @@ urlpatterns = [
     path('users/delete/', views.delete_user, name='delete_user'),
     
     # Activity Logs
-    path('activity-logs/', views.activity_logs, name='activity_logs'),
-    path('activity-logs/<int:log_id>/', views.activity_log_detail, name='activity_log_detail'),
+    path('activity-logs/', activity_views.activity_logs, name='activity_logs'),
+    path('activity-logs/<int:log_id>/', activity_views.activity_log_detail, name='activity_log_detail'),
+    path('activity-logs/user/<int:user_id>/', activity_views.user_activity_logs, name='user_activity_logs'),
+    path('activity-logs/export/', activity_views.export_activity_logs, name='export_activity_logs'),
+    
+    # Billing History
+    path('billing-history/', billing_views.billing_history_list, name='billing_history_list'),
+    path('billing-history/<int:billing_id>/', billing_views.billing_history_detail, name='billing_history_detail'),
+    path('businesses/<int:business_id>/billing-history/', billing_views.business_billing_history, name='business_billing_history'),
+    path('subscriptions/<int:subscription_id>/billing-history/', billing_views.subscription_billing_history, name='subscription_billing_history'),
 ]

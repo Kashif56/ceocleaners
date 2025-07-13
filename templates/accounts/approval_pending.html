@@ -4,7 +4,147 @@
 {% block title %}Approval Pending{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'css/accounts/approval_pending.css' %}">
+<style>
+    .pending-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1.5rem;
+    background-color: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.pending-icon {
+    font-size: 3.5rem;
+    color: var(--warning-color);
+    margin-bottom: 1rem;
+}
+
+.pending-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--dark-color);
+    margin-bottom: 0.75rem;
+}
+
+.pending-message {
+    font-size: 1rem;
+    color: var(--gray-color);
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.steps-container {
+    background-color: var(--primary-light);
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.step {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+}
+
+.step:last-child {
+    margin-bottom: 0;
+}
+
+.step-number {
+    background-color: var(--primary-color);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+}
+
+.step-content {
+    flex: 1;
+}
+
+.step-title {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--primary-dark);
+    margin-bottom: 0.25rem;
+}
+
+.step p {
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+.contact-info {
+    background-color: var(--light-color);
+    border-left: 3px solid var(--primary-color);
+    padding: 0.875rem;
+    border-radius: 0.375rem;
+}
+
+.contact-info h3 {
+    font-size: 1.125rem;
+    margin-bottom: 0.75rem;
+}
+
+.contact-info p {
+    font-size: 0.875rem;
+    margin-bottom: 0.375rem;
+}
+
+.contact-info p:last-child {
+    margin-bottom: 0;
+}
+
+.btn-primary {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.steps-container h2 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.video-container {
+    position: relative;
+    padding-bottom: 56.25%;
+    height: 0;
+    overflow: hidden;
+    max-width: 100%;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+.video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 0.5rem;
+}
+
+.trial-btn {
+    background-color: var(--success-color);
+    color: white;
+    border: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.trial-btn:hover {
+    background-color: var(--success-dark);
+    transform: translateY(-2px);
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -14,35 +154,120 @@
             <i class="fas fa-clock-rotate-left"></i>
         </div>
         
-        <h1 class="pending-title">Please subscribe to Trial Plan to get started</h1>
+        {% if trial_plan %}
+        <h1 class="pending-title">Please subscribe to the Trial Plan to get started</h1>
         
         <p class="pending-message">
-            Thank you for registering your business with CleaningBiz AI! Please subscribe to Trial Plan to get started to have access to all the features.
+            Thank you for registering your business with CleaningBiz AI! Please subscribe to our Trial Plan to get started and access all the features.
         </p>
+        {% else %}
+        <h1 class="pending-title">Please choose a subscription plan to get started</h1>
+        
+        <p class="pending-message">
+            Thank you for registering your business with CleaningBiz AI! Please select a subscription plan to get started and access all the features.
+        </p>
+        {% endif %}
         
         <div class="steps-container text-start">
             <h2 class="mb-3">What happens next?</h2>
-            
             <div class="step">
                 <div class="step-number">1</div>
                 <div class="step-content">
-                    <div class="step-title">Watch our Demo Video</div>
-                    <p>Learn how CleaningBiz AI can transform your cleaning business operations with our comprehensive demo video.</p>
-                    <div class="video-container">
-                        <iframe width="560" height="315" src="https://www.youtube.com/embed/8eGSZkqMLFo?si=KAspffe5TCasRdfm" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-                    </div>
+                    <div class="step-title">Schedule Demo Call (Optional)</div>
+                    <p>Please schedule your demo call if you have any questions related to CleaningBiz AI or if you want to know more about our platform. If not, you can skip this step.</p>
+                    
+           
+                    <a id="app-scheduling" href="#" class="btn btn-primary mt-2" alt="Booknow button" target="_blank" data-domain-name="https://cleaningbizai.bookafy.com/schedule/?type=iframe&custom_embed=true&locale=en">
+                        <i class="fas fa-phone-alt me-2"></i>
+                        Schedule Demo Call</a>
+                <script id="scheduling_script" type="text/javascript" src="https://app.bookafy.com/popup-code.js"></script>
+
+                   
                 </div>
             </div>
             
+
             <div class="step">
                 <div class="step-number">2</div>
                 <div class="step-content">
-                    <div class="step-title">Sign Up for 30-Day Trial</div>
-                    <p>Get full access to all CleaningBiz AI features for 30 days for just $30. Experience the power of our platform with no long-term commitment.</p>
                     {% if trial_plan %}
+                    <div class="step-title">Sign Up for the {{ trial_plan.get_billing_cycle_display }} Trial</div>
+                    <p>Get full access to all the CleaningBiz AI features for {{ trial_plan.get_billing_cycle_display }} for just ${{ trial_plan.price }}. Experience the power of our platform with no long-term commitment. <br><strong>Note that this trial fee is non-refundable.</strong></p>
                     <a href="{% url 'subscription:select_plan' trial_plan.id %}" class="btn trial-btn mt-2">
-                        <i class="fas fa-rocket me-2"></i>Start 30-Day Trial for $30
+                        <i class="fas fa-rocket me-2"></i>Start the {{ trial_plan.get_billing_cycle_display }} Trial for ${{ trial_plan.price }}
                     </a>
+                    {% else %}
+                    <div class="step-title">Choose Your Subscription Plan</div>
+                    <p>Select the plan that best fits your business needs. We offer both monthly and yearly subscription options.</p>
+                    
+                    <!-- Pricing Toggle -->
+                    <div class="pricing-toggle mb-4 mt-3">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="pricingToggle" id="monthlyToggle" checked>
+                            <label class="form-check-label" for="monthlyToggle">Monthly</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="pricingToggle" id="yearlyToggle">
+                            <label class="form-check-label" for="yearlyToggle">Yearly <span class="badge bg-success">Save 20%</span></label>
+                        </div>
+                    </div>
+                    
+                    <!-- Monthly Plans -->
+                    <div id="monthlyPlans" class="subscription-plans">
+                        {% if monthly_plans %}
+                            <div class="row">
+                                {% for plan in monthly_plans %}
+                                <div class="col-md-{% if monthly_plans.count == 1 %}12{% elif monthly_plans.count == 2 %}6{% else %}4{% endif %} mb-3">
+                                    <div class="card h-100 {% if plan.plan_tier == 'professional' %}border-primary{% endif %}">
+                                        <div class="card-header {% if plan.plan_tier == 'professional' %}bg-primary text-white{% endif %}">
+                                            <h5 class="card-title mb-0">{{ plan.display_name }}</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <h3 class="price">${{ plan.price }}<span class="period">/month</span></h3>
+                                            <ul class="feature-list">
+                                                <li>{{ plan.agents }} Agents</li>
+                                                <li>{{ plan.cleaners }} Cleaners</li>
+                                                <li>{{ plan.leads }} Leads</li>
+                                            </ul>
+                                            <a href="{% url 'subscription:select_plan' plan.id %}" class="btn btn-primary w-100">Select Plan</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p>No monthly plans are currently available.</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Yearly Plans -->
+                    <div id="yearlyPlans" class="subscription-plans" style="display: none;">
+                        {% if yearly_plans %}
+                            <div class="row">
+                                {% for plan in yearly_plans %}
+                                <div class="col-md-{% if yearly_plans.count == 1 %}12{% elif yearly_plans.count == 2 %}6{% else %}4{% endif %} mb-3">
+                                    <div class="card h-100 {% if plan.plan_tier == 'professional' %}border-primary{% endif %}">
+                                        <div class="card-header {% if plan.plan_tier == 'professional' %}bg-primary text-white{% endif %}">
+                                            <h5 class="card-title mb-0">{{ plan.display_name }}</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <h3 class="price">${{ plan.price }}<span class="period">/year</span></h3>
+                                            <p class="monthly-equivalent text-success">${{ plan.get_monthly_display_price }}/month equivalent</p>
+                                            <ul class="feature-list">
+                                                <li>{{ plan.agents }} Agents</li>
+                                                <li>{{ plan.cleaners }} Cleaners</li>
+                                                <li>{{ plan.leads }} Leads</li>
+                                            </ul>
+                                            <a href="{% url 'subscription:select_plan' plan.id %}" class="btn btn-primary w-100">Select Plan</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p>No yearly plans are currently available.</p>
+                        {% endif %}
+                    </div>
                     {% endif %}
                 </div>
             </div>
@@ -50,11 +275,36 @@
             <div class="step">
                 <div class="step-number">3</div>
                 <div class="step-content">
-                    <div class="step-title">Book a Personalized Call</div>
-                    <p>Schedule a one-on-one call with our experts to get personalized guidance for your specific business needs.</p>
-                    <a href="https://tidycal.com/cleaningbiz/30-min-cleaning-biz-ai-demo" class="btn btn-secondary mt-2 disabled" style="opacity: 0.65; pointer-events: none;" target="_blank">
-                        <i class="fas fa-calendar-check me-2"></i>Book Your Personalized Call
-                    </a>
+                    <div class="step-title">Sign up for your onboarding call</div>
+                    <p>Schedule your mandatory one-on-one onboarding call with our platform experts to professionally set up your account alongside you. This will ensure a smoother and more successful experience without any headaches, as well as ensure that you are properly trained on the tool. This call also includes 1-2 custom integrations with your existing tools (if your tools support API integrations).</p>
+                    <p><strong>Note that this is a one-time fee of $60 and it is non-refundable.<br>  The onboarding setup fee is collected when you start the trial plan or subscribe to any plan.</strong> </p>
+                    
+           
+
+                    <a id="app-scheduling" href="#" class="btn btn-secondary mt-2 disabled" style="opacity: 0.65; pointer-events: none;" alt="Booknow button" target="_blank" data-domain-name="https://cleaningbizai.bookafy.com/schedule/?type=iframe&custom_embed=true&locale=en">
+                        <i class="fas fa-phone-alt me-2"></i>
+                        Book Your Mandatory Onboarding Call</a>
+                <script id="scheduling_script" type="text/javascript" src="https://app.bookafy.com/popup-code.js"></script>
+
+                    <br> <br>
+                    <a href="{% url 'subscription:select_plan' trial_plan.id %}" class="mt-2 text-primary">First, start your {{ trial_plan.get_billing_cycle_display }} {{ trial_plan.plan_tier }} plan to get started</a>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <div class="step-title">Watch the demo video</div>
+                    <p>Watch the demo video to get a better understanding of the platform and how it can help you.</p>
+                    <div class="video-container">
+                        <iframe 
+                            src="https://www.youtube.com/embed/8eGSZkqMLFo?si=BGntGDVBBeOdZ-wS" 
+                            title="CleaningBiz AI Platform Demo" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture;" 
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+           
                 </div>
             </div>
         </div>
@@ -66,4 +316,32 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Toggle between monthly and yearly plans
+    document.addEventListener('DOMContentLoaded', function() {
+        const monthlyToggle = document.getElementById('monthlyToggle');
+        const yearlyToggle = document.getElementById('yearlyToggle');
+        const monthlyPlans = document.getElementById('monthlyPlans');
+        const yearlyPlans = document.getElementById('yearlyPlans');
+        
+        if (monthlyToggle && yearlyToggle) {
+            monthlyToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    monthlyPlans.style.display = 'block';
+                    yearlyPlans.style.display = 'none';
+                }
+            });
+            
+            yearlyToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    monthlyPlans.style.display = 'none';
+                    yearlyPlans.style.display = 'block';
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

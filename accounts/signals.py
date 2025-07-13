@@ -53,12 +53,12 @@ def assign_owner_group(sender, instance, created, **kwargs):
             print(f"Error assigning owner group: {e}")
         
 
-@receiver(post_save, sender=Business)
-def add_twilio_credentials(sender, instance, created, **kwargs):
-    if created:
-        api_credential, created = ApiCredential.objects.get_or_create(business=instance)
-        if created:
-            api_credential.twilioAccountSid = twilio_sid
-            api_credential.twilioAuthToken = twilio_auth_token
-            api_credential.save()
+# @receiver(post_save, sender=Business)
+# def add_twilio_credentials(sender, instance, created, **kwargs):
+#     if created:
+#         api_credential, created = ApiCredential.objects.get_or_create(business=instance)
+#         if created:
+#             api_credential.twilioAccountSid = twilio_sid
+#             api_credential.twilioAuthToken = twilio_auth_token
+#             api_credential.save()
     

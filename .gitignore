@@ -9,14 +9,11 @@ venv/
 env/
 .env
 
-# Ignore Django database (For local SQLite only)
-db.sqlite3
-*.db
 
 # Ignore Environment Variables
 .env
 .cursor
-coding-rules.mdc
+
 # Ignore logs and temp files
 *.log
 *.out
@@ -27,12 +24,12 @@ coding-rules.mdc
 .idea/
 *.swp
 .DS_Store
-Thumbs.db
+
 
 # Ignore Static & Media Files (Optional)
 staticfiles/
 media/
-Doc.md
+
 
 cert.crt
 cert.key

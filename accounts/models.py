@@ -18,8 +18,8 @@ PAYMENT_METHODS = [
 
 
 JOB_ASSIGNMENT_OPTIONS = [
-    ('high_rated', 'High Rated'),
-    ('all_available', 'All Available'),
+    ('high_rated', 'Auto-assign by points rating'),
+    ('all_available', 'Send Job to available cleaners'),
 ]
 
 class Business(models.Model):
@@ -39,7 +39,6 @@ class Business(models.Model):
 
     defaultPaymentMethod = models.CharField(max_length=255, null=True, blank=True, help_text="Default payment method for collecting payments", choices=PAYMENT_METHODS)
 
-    cleaner_pay_percentage = models.IntegerField(default=25)
     job_assignment = models.CharField(max_length=255, null=True, blank=True, help_text="Job assignment method", choices=JOB_ASSIGNMENT_OPTIONS, default='all_available')
 
     useCall = models.BooleanField(default=False)
@@ -62,10 +61,16 @@ class Business(models.Model):
     def get_square_credentials(self):
         return self.square_credentials
     
+    def has_setup_fee(self):
+        from subscription.models import SetupFee
+
+        if SetupFee.objects.filter(business=self).exists():
+            return True
+        return False
 
     def has_availed_trial(self):
         from subscription.models import BusinessSubscription, SubscriptionPlan
-        plan = SubscriptionPlan.objects.filter(name__icontains='Trial').first()
+        plan = SubscriptionPlan.objects.filter(plan_tier='trial', is_active=True, is_invite_only=False).first()
         subscription = BusinessSubscription.objects.filter(
             business=self,
             plan=plan
@@ -133,6 +138,9 @@ class ApiCredential(models.Model):
     
     def getTwilioWebhookUrl(self):
         return f"{URL}/ai_agent/api/twilio/webhook/{self.secretKey}/"
+    
+    def getLeadWebhookUrl(self):
+        return f"{URL}/lead/webhook/{self.secretKey}/"
 
 
 class SMTPConfig(models.Model):
@@ -294,3 +302,15 @@ class CleanerProfile(models.Model):
 
 
 
+class ThumbtackProfile(models.Model):
+    business = models.OneToOneField(Business, on_delete=models.CASCADE, related_name='thumbtack_profile')
+    thumbtack_business_id = models.CharField(max_length=255, null=True, blank=True)
+    access_token = models.CharField(max_length=2000, null=True, blank=True)
+    refresh_token = models.CharField(max_length=2000, null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+    
+
+    def __str__(self):
+        return self.business.businessName

@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load automation_filters %}
+{% load timezone_tags %}
 
 {% block content %}
 <div class="container py-4">
@@ -150,7 +151,13 @@
                         </div>
                         {% elif availability.startTime and availability.endTime %}
                         <div class="text-muted">
-                            {{ availability.startTime|time:"g:i A" }} - {{ availability.endTime|time:"g:i A" }}
+                            {% with time_start=availability.startTime|to_business_timezone:business_timezone %}
+                            
+                            {% with time_end=availability.endTime|to_business_timezone:business_timezone %}
+                            {{ time_start|time:"g:i A" }} - {{ time_end|time:"g:i A" }}
+                            <small class="ms-1 text-muted">({{ business_timezone }})</small>
+                            {% endwith %}
+                            {% endwith %}
                         </div>
                         {% else %}
                         <div>
@@ -238,7 +245,7 @@
                         <div class="col-md-6">
                             <p class="mb-1"><strong>Client:</strong> {{ current_booking.firstName }} {{ current_booking.lastName }}</p>
                             <p class="mb-1"><strong>Service:</strong> {{ current_booking.get_serviceType_display }}</p>
-                            <p class="mb-0"><strong>Time:</strong> {{ current_booking.startTime|time:"g:i A" }} - {{ current_booking.endTime|time:"g:i A" }}</p>
+                            <p class="mb-0"><strong>Time:</strong> {{ current_booking.startTime|to_business_timezone:user_timezone|date:"h:i A" }} - {{ current_booking.endTime|to_business_timezone:user_timezone|date:"h:i A" }}</p>
                         </div>
                         <div class="col-md-6">
                             <p class="mb-1"><strong>Address:</strong></p>
@@ -298,7 +305,7 @@
                                         {% for booking in upcoming_bookings %}
                                         <tr>
                                             <td>{{ booking.cleaningDate|date:"M d, Y" }}</td>
-                                            <td>{{ booking.startTime|time:"g:i A" }}</td>
+                                            <td>{{ booking.startTime|to_business_timezone:user_timezone|date:"h:i A" }} - {{ booking.endTime|to_business_timezone:user_timezone|date:"h:i A" }}</td>
                                             <td>{{ booking.firstName }} {{ booking.lastName }}</td>
                                             <td>{{ booking.get_serviceType_display }}</td>
                                             <td>
@@ -310,7 +317,7 @@
                                                        data-bs-target="#viewBookingModal" 
                                                        data-booking-id="{{ booking.bookingId }}"
                                                        data-booking-date="{{ booking.cleaningDate|date:'M d, Y' }}"
-                                                       data-booking-time="{{ booking.startTime|time:'g:i A' }} - {{ booking.endTime|time:'g:i A' }}"
+                                                       data-booking-time="{{ booking.startTime|to_business_timezone:user_timezone|date:'g:i A' }} - {{ booking.endTime|to_business_timezone:user_timezone|date:'g:i A' }}"
                                                        data-booking-client="{{ booking.firstName }} {{ booking.lastName }}"
                                                        data-booking-phone="{{ booking.phoneNumber }}"
                                                        data-booking-email="{{ booking.email }}"
@@ -359,7 +366,7 @@
                                         {% for booking in past_bookings %}
                                         <tr>
                                             <td>{{ booking.cleaningDate|date:"M d, Y" }}</td>
-                                            <td>{{ booking.startTime|time:"g:i A" }}</td>
+                                            <td>{{ booking.startTime|to_business_timezone:user_timezone|date:"h:i A" }} - {{ booking.endTime|to_business_timezone:user_timezone|date:"h:i A" }}</td>
                                             <td>{{ booking.firstName }} {{ booking.lastName }}</td>
                                             <td>{{ booking.get_serviceType_display }}</td>
                                             <td>
@@ -373,7 +380,7 @@
                                                        data-bs-target="#viewBookingModal" 
                                                        data-booking-id="{{ booking.bookingId }}"
                                                        data-booking-date="{{ booking.cleaningDate|date:'M d, Y' }}"
-                                                       data-booking-time="{{ booking.startTime|time:'g:i A' }} - {{ booking.endTime|time:'g:i A' }}"
+                                                       data-booking-time="{{ booking.startTime|to_business_timezone:user_timezone|date:'g:i A' }} - {{ booking.endTime|to_business_timezone:user_timezone|date:'g:i A' }}"
                                                        data-booking-client="{{ booking.firstName }} {{ booking.lastName }}"
                                                        data-booking-phone="{{ booking.phoneNumber }}"
                                                        data-booking-email="{{ booking.email }}"
@@ -509,17 +516,21 @@
                                             <input type="hidden" name="dayOfWeek[]" value="{{ availability.dayOfWeek }}">
                                             <div class="d-flex align-items-center gap-2">
                                                 <label class="form-label mb-0 text-muted small">From</label>
+                                                {% with start_time=availability.startTime|to_business_timezone:business_timezone %}
                                                 <input type="time" class="form-control form-control-sm" 
                                                        name="startTime[]" 
-                                                       value="{{ availability.startTime|time:'H:i' }}" 
+                                                       value="{{ start_time|time:'H:i' }}" 
                                                        >
+                                                {% endwith %}
                                             </div>
                                             <div class="d-flex align-items-center gap-2">
                                                 <label class="form-label mb-0 text-muted small">To</label>
+                                                {% with end_time=availability.endTime|to_business_timezone:business_timezone %}
                                                 <input type="time" class="form-control form-control-sm" 
                                                        name="endTime[]" 
-                                                       value="{{ availability.endTime|time:'H:i' }}" 
+                                                       value="{{ end_time|time:'H:i' }}" 
                                                        >
+                                                {% endwith %}
                                             </div>
                                         </div>
                                         
@@ -534,7 +545,11 @@
                                                     {% if exception.offDay %}
                                                     <span>OFF DAY</span>
                                                     {% else %}
-                                                    <span>{{ exception.startTime|time:"g:i A" }} - {{ exception.endTime|time:"g:i A" }}</span>
+                                                    {% with ex_start=exception.startTime|to_business_timezone:business_timezone %}
+                                                    {% with ex_end=exception.endTime|to_business_timezone:business_timezone %}
+                                                    <span>{{ ex_start|time:"g:i A" }} - {{ ex_end|time:"g:i A" }}</span>
+                                                    {% endwith %}
+                                                    {% endwith %}
                                                     {% endif %}
                                                 </li>
                                                 {% endfor %}
@@ -771,7 +786,7 @@
                                         <div class="fw-medium me-2">Booking ID:</div>
                                         <div class="ms-auto" id="modal-booking-id"></div>
                                     </li>
-                                    <li class="list-group-item px-0 py-2 d-flex">
+                                    <!-- <li class="list-group-item px-0 py-2 d-flex">
                                         <div class="text-muted me-3" style="width: 24px;">
                                             <i class="fas fa-dollar-sign"></i>
                                         </div>
@@ -784,7 +799,7 @@
                                         </div>
                                         <div class="fw-medium text-info me-2">Your Payout:</div>
                                         <div class="ms-auto text-info" id="modal-booking-payout"></div>
-                                    </li>
+                                    </li> -->
                                 </ul>
                             </div>
                         </div>

@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Thumbtack Authorization{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Thumbtack Authorization</h4>
+                </div>
+                <div class="card-body text-center">
+                    {% if success %}
+                        <div class="mb-4">
+                            <i class="fas fa-check-circle fa-5x text-success"></i>
+                        </div>
+                        <h3>Successfully Connected!</h3>
+                        <p class="lead mb-4">Your Thumbtack Pro account has been successfully connected to your dashboard.</p>
+                        <div class="alert alert-success">
+                            You can now manage your Thumbtack leads and bookings directly from your dashboard.
+                        </div>
+                        <div class="mt-4">
+                            <a href="{% url 'accounts:thumbtack_profile' %}" class="btn btn-primary btn-lg">
+                                <i class="fas fa-user mr-2"></i> View Thumbtack Profile
+                            </a>
+                            <a href="{% url 'accounts:thumbtack_dashboard' %}" class="btn btn-outline-primary btn-lg ml-2">
+                                <i class="fas fa-tachometer-alt mr-2"></i> Go to Dashboard
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="mb-4">
+                            <i class="fas fa-exclamation-triangle fa-5x text-danger"></i>
+                        </div>
+                        <h3>Connection Failed</h3>
+                        <p class="lead mb-4">We couldn't connect your Thumbtack Pro account.</p>
+                        <div class="alert alert-danger">
+                            Error: {{ error_message|default:"An unknown error occurred during the authorization process." }}
+                        </div>
+                        <div class="mt-4">
+                            <a href="{% url 'accounts:thumbtack_connect' %}" class="btn btn-primary btn-lg">
+                                <i class="fas fa-redo mr-2"></i> Try Again
+                            </a>
+                            <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary btn-lg ml-2">
+                                <i class="fas fa-arrow-left mr-2"></i> Back to Profile
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

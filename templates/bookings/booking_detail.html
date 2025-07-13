@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load timezone_tags %}
 
 {% block title %}Booking Details{% endblock %}
 
@@ -11,7 +12,7 @@
                 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
                     <div>
                         <h4 class="mb-1 text-primary">Booking #{{ booking.bookingId }}</h4>
-                        <p class="text-muted mb-0">Created on {{ booking.createdAt|date:"F d, Y" }}</p>
+                        <p class="text-muted mb-0">Created on <span data-utc-datetime="{{ booking.createdAt|date:'c' }}">{% convert_and_format booking.createdAt booking.business.timezone "F d, Y" %}</span></p>
                     </div>
                     {% if booking.cancelled_at %}
                     <div class="d-flex gap-2 mt-2 mt-sm-0">
@@ -95,11 +96,12 @@
                             </p>
                             <p class="mb-2">
                                 <i class="fas fa-calendar text-muted me-2"></i>
-                                {{ booking.cleaningDate|date:"F d, Y" }}
+                                <span>{{ booking.cleaningDate|date:"F d, Y" }}</span>
                             </p>
                             <p class="mb-2">
                                 <i class="fas fa-clock text-muted me-2"></i>
-                                {{ booking.startTime|date:"h:i A" }} to {{ booking.endTime|date:"h:i A" }}
+                                <span>{{ booking.startTime|to_business_timezone:user_timezone|date:"h:i A" }}</span> to 
+                                <span>{{ booking.endTime|to_business_timezone:user_timezone|date:"h:i A" }}</span>
                             </p>
                             <p class="mb-2">
                                 <i class="fas fa-credit-card text-muted me-2"></i>
@@ -112,13 +114,7 @@
                                 <small class="text-muted">(+${{ booking.tax }} tax)</small>
                                 {% endif %}
                             </p>
-                            {% if booking.cleaner %}
-                            <p class="mb-0">
-                                <i class="fas fa-hand-holding-usd text-muted me-2"></i>
-                                <span class="h6 text-primary mb-0">Cleaner Payout: ${{ booking.get_cleaner_payout|floatformat:2 }}</span>
-                                <small class="text-muted">({{ booking.business.cleaner_pay_percentage }}% of total)</small>
-                            </p>
-                            {% endif %}
+                            
                         </div>
                     </div>
                 </div>

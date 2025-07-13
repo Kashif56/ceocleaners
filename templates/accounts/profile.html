@@ -200,17 +200,7 @@
                                                     <div class="fs-5 fw-semibold text-dark">{{ business.address }}</div>
                                                 </div>
                                             </div>
-                                            <div class="col-md-4">
-                                                <div class="p-3 rounded-3 bg-light">
-                                                    <div class="d-flex align-items-center mb-2">
-                                                        <div class="rounded-circle bg-primary p-2 me-2 d-flex justify-content-center align-items-center" style="width: 35px; height: 35px;">
-                                                            <i class="fas fa-percent text-white"></i>
-                                                        </div>
-                                                        <div class="text-muted small">Cleaner Pay Percentage</div>
-                                                    </div>
-                                                    <div class="fs-5 fw-semibold text-dark">{{ business.cleaner_pay_percentage }}%</div>
-                                                </div>
-                                            </div>
+
                                             <div class="col-md-6">
                                                 <div class="p-3 rounded-3 bg-light">
                                                     <div class="d-flex align-items-center mb-2">
@@ -908,6 +898,49 @@
                                     <div class="mt-2 small text-muted">
                                         <i class="fas fa-info-circle me-1"></i>
                                         This URL will receive webhook events from Thumbtack.
+                                    </div>
+                                    {% else %}
+                                    <div class="alert alert-warning mb-0">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        Please set up your secret key first to get your webhook URL.
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="p-3 rounded-3 bg-light inner-credential-card">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="rounded-circle bg-warning p-2 me-2 d-flex justify-content-center align-items-center" style="width: 32px; height: 32px;">
+                                            <i class="fas fa-globe text-white small"></i>
+                                        </div>
+                                        <h6 class="mb-0">Leads API</h6>
+                                        <span class="badge bg-warning text-dark ms-2 rounded-pill">Integration</span>
+                                    </div>
+                                    {% if credentials.secretKey %}
+                                    <div class="input-group">
+                                        <input type="text" 
+                                               class="form-control api-key-input" 
+                                               id="LeadWebhookUrl" 
+                                               value="{{ credentials.getLeadWebhookUrl }}" 
+                                               placeholder="Lead Webhook URL"
+                                               readonly>
+                                        <button class="btn btn-outline-primary key-action-btn"
+                                                type="button"
+                                                onclick="copyToClipboard('LeadWebhookUrl')"
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="top"
+                                                title="Copy to Clipboard">
+                                            <i class="fas fa-clipboard me-1"></i>Copy
+                                        </button>
+                                    </div>
+                                    <div class="mt-2 small text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        POST API for leads
+                                    </div>
+                                    <div class="mt-2 small text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        This URL will receive leads from other sources as you setup
                                     </div>
                                     {% else %}
                                     <div class="alert alert-warning mb-0">

@@ -734,8 +734,8 @@ class OpenAIAgent:
                     
             # getCurrentTime tool
             elif tool_name == 'getCurrentTime':
-                # Call the get_current_time_in_chicago function
-                result = get_current_time_in_chicago()
+                # Call the get_current_time_in_chicago function with business parameter
+                result = get_current_time_in_chicago(business)
                 return json.dumps({
                     "current_time": result
                 })

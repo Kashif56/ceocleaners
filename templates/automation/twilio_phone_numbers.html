@@ -11,6 +11,7 @@
                 <div class="page-title-right">
                     <ol class="breadcrumb m-0">
                         <li class="breadcrumb-item"><a href="{% url 'home' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'accounts:profile' %}">Profile</a></li>
                         <li class="breadcrumb-item active">Twilio Phone Numbers</li>
                     </ol>
                 </div>
@@ -20,7 +21,7 @@
     </div>
 
     <!-- Twilio Credentials Section -->
-    <div class="row">
+    <div class="row mt-5">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
@@ -33,7 +34,7 @@
                         <a href="{% url 'accounts:profile' %}" class="alert-link">Configure Twilio Credentials</a>
                     </div>
                     {% else %}
-                    <div class="alert alert-success">
+                    <div class="alert alert-success" style="width: fit-content;">
                         <i class="mdi mdi-check-circle-outline me-2"></i>
                         Twilio credentials are configured.
                     </div>
@@ -65,7 +66,7 @@
     </div>
 
     <!-- Search for Phone Numbers Section -->
-    <div class="row">
+    <div class="row mt-5">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
@@ -139,7 +140,7 @@
     </div>
 
     <!-- Your Phone Numbers Section -->
-    <div class="row">
+    <div class="row mt-5">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
@@ -230,355 +231,460 @@
 
 {% block extra_js %}
 <script>
-    $(document).ready(function() {
+    document.addEventListener('DOMContentLoaded', function() {
         // Load existing phone numbers
         loadPhoneNumbers();
         
         // Search form submission
-        $('#search-form').on('submit', function(e) {
+        document.getElementById('search-form').addEventListener('submit', function(e) {
             e.preventDefault();
             searchPhoneNumbers();
         });
         
-        // Purchase button click
-        $(document).on('click', '.purchase-btn', function() {
-            const phoneNumber = $(this).data('phone');
-            $('#purchase-phone-number').text(phoneNumber);
-            $('#purchase-modal').modal('show');
+        // Purchase button click (using event delegation)
+        document.addEventListener('click', function(event) {
+            if (event.target.closest('.purchase-btn')) {
+                const button = event.target.closest('.purchase-btn');
+                const phoneNumber = button.dataset.phone;
+                document.getElementById('purchase-phone-number').textContent = phoneNumber;
+                const purchaseModal = new bootstrap.Modal(document.getElementById('purchase-modal'));
+                purchaseModal.show();
+            }
         });
         
         // Confirm purchase
-        $('#confirm-purchase').on('click', function() {
-            const phoneNumber = $('#purchase-phone-number').text();
+        document.getElementById('confirm-purchase').addEventListener('click', function() {
+            const phoneNumber = document.getElementById('purchase-phone-number').textContent;
             purchasePhoneNumber(phoneNumber);
         });
         
-        // Update webhook button click
-        $(document).on('click', '.update-webhook-btn', function() {
-            const phoneSid = $(this).data('sid');
-            const phoneNumber = $(this).data('phone');
-            $('#webhook-phone-number').text(phoneNumber);
-            $('#webhook-modal').modal('show');
-            $('#confirm-webhook').data('sid', phoneSid);
+        // Add event listeners for update webhook buttons (using event delegation)
+        document.addEventListener('click', function(event) {
+            if (event.target.closest('.update-webhook-btn')) {
+                const button = event.target.closest('.update-webhook-btn');
+                const phoneSid = button.dataset.sid;
+                const phoneNumber = button.dataset.phone;
+                document.getElementById('webhook-phone-number').textContent = phoneNumber;
+                // Store the SID as a data attribute on the button
+                document.getElementById('confirm-webhook').setAttribute('data-sid', phoneSid);
+                
+                // Show the modal using Bootstrap's JavaScript API
+                const webhookModal = new bootstrap.Modal(document.getElementById('webhook-modal'));
+                webhookModal.show();
+            }
         });
         
         // Confirm webhook update
-        $('#confirm-webhook').on('click', function() {
-            const phoneSid = $(this).data('sid');
+        document.getElementById('confirm-webhook').addEventListener('click', function() {
+            const phoneSid = this.getAttribute('data-sid');
             updateWebhook(phoneSid);
         });
         
-        // Set active number button click
-        $(document).on('click', '.set-active-btn', function() {
-            const phoneNumber = $(this).data('phone');
-            setActiveNumber(phoneNumber);
+        // Set active number button click (using event delegation)
+        document.addEventListener('click', function(event) {
+            if (event.target.closest('.set-active-btn')) {
+                const button = event.target.closest('.set-active-btn');
+                const phoneNumber = button.dataset.phone;
+                setActiveNumber(phoneNumber);
+            }
         });
     });
     
     function searchPhoneNumbers() {
-        const country = $('#country').val();
-        const areaCode = $('#area-code').val();
+        const country = document.getElementById('country').value;
+        const areaCode = document.getElementById('area-code').value;
         
-        // Show loading indicator
-        $('#search-results').hide();
-        $('#search-error').hide();
-        $('#search-loading').show();
+        // Clear previous results and errors
+        document.getElementById('search-results').style.display = 'none';
+        document.getElementById('search-error').style.display = 'none';
+        document.getElementById('search-loading').style.display = 'block';
         
         // Make API request
-        $.ajax({
-            url: '{% url "search_twilio_numbers" %}',
-            type: 'GET',
-            data: {
+        fetch('{% url "search_twilio_numbers" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
                 country: country,
                 area_code: areaCode
-            },
-            success: function(response) {
-                $('#search-loading').hide();
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw response;
+            }
+            return response.json();
+        })
+        .then(response => {
+            document.getElementById('search-loading').style.display = 'none';
+            
+            // Clear previous results
+            document.getElementById('results-table').innerHTML = '';
+            
+            // Check if any numbers were found
+            if (response.numbers && response.numbers.length > 0) {
+                // Populate results table
+                response.numbers.forEach(function(number) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${number.friendly_name}</td>
+                        <td>${number.locality || 'N/A'}, ${number.region || 'N/A'}</td>
+                        <td>
+                            <span class="badge bg-${number.capabilities.sms ? 'success' : 'secondary'}">SMS</span>
+                            <span class="badge bg-${number.capabilities.voice ? 'success' : 'secondary'}">Voice</span>
+                            <span class="badge bg-${number.capabilities.mms ? 'success' : 'secondary'}">MMS</span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-primary purchase-btn" data-phone="${number.phone_number}">
+                                <i class="mdi mdi-cart-plus me-1"></i> Purchase
+                            </button>
+                        </td>
+                    `;
+                    document.getElementById('results-table').appendChild(row);
+                });
                 
-                // Clear previous results
-                $('#results-table').empty();
-                
-                // Check if any numbers were found
-                if (response.numbers && response.numbers.length > 0) {
-                    // Populate results table
-                    response.numbers.forEach(function(number) {
-                        const location = [
-                            number.locality,
-                            number.region,
-                            number.postal_code
-                        ].filter(Boolean).join(', ');
-                        
-                        const capabilities = [];
-                        if (number.capabilities.sms) capabilities.push('SMS');
-                        if (number.capabilities.voice) capabilities.push('Voice');
-                        if (number.capabilities.mms) capabilities.push('MMS');
-                        
-                        $('#results-table').append(`
-                            <tr>
-                                <td>${number.friendly_name}</td>
-                                <td>${location || 'N/A'}</td>
-                                <td>${capabilities.join(', ') || 'None'}</td>
-                                <td>
-                                    <button class="btn btn-sm btn-primary purchase-btn" data-phone="${number.phone_number}">
-                                        <i class="mdi mdi-cart-plus me-1"></i> Purchase
-                                    </button>
-                                </td>
-                            </tr>
-                        `);
-                    });
-                    
-                    $('#search-results').show();
-                } else {
-                    // No numbers found
-                    $('#results-table').append(`
-                        <tr>
-                            <td colspan="4" class="text-center">No SMS-capable phone numbers found matching your criteria. Try a different area code.</td>
-                        </tr>
-                    `);
-                    $('#search-results').show();
-                }
-            },
-            error: function(xhr) {
-                $('#search-loading').hide();
-                
-                // Show error message
-                let errorMessage = 'An error occurred while searching for phone numbers.';
-                if (xhr.responseJSON && xhr.responseJSON.error) {
-                    errorMessage = xhr.responseJSON.error;
-                }
-                
-                $('#error-message').text(errorMessage);
-                $('#search-error').show();
-                
-                // Show authentication help if it's an auth error
-                if (errorMessage.includes('Authentication Error') || errorMessage.includes('invalid username')) {
-                    $('#auth-error-help').show();
-                } else {
-                    $('#auth-error-help').hide();
-                }
+                document.getElementById('search-results').style.display = 'block';
+            } else {
+                // No numbers found
+                document.getElementById('search-error').style.display = 'block';
+                document.getElementById('error-message').textContent = 'No available numbers found with the specified criteria. Try a different area code.';
+            }
+        })
+        .catch(error => {
+            document.getElementById('search-loading').style.display = 'none';
+            
+            // Show error message
+            let errorMessage = 'An error occurred while searching for phone numbers.';
+            if (error.json) {
+                error.json().then(data => {
+                    if (data.error) {
+                        errorMessage = data.error;
+                    }
+                    displayError(errorMessage, error.status);
+                }).catch(() => {
+                    displayError(errorMessage);
+                });
+            } else {
+                displayError(errorMessage);
             }
         });
     }
     
+    function displayError(message, status) {
+        document.getElementById('search-error').style.display = 'block';
+        document.getElementById('error-message').textContent = message;
+        
+        // Show authentication help if it's an auth error
+        if (status === 401) {
+            document.getElementById('auth-error-help').style.display = 'block';
+        } else {
+            document.getElementById('auth-error-help').style.display = 'none';
+        }
+    }
+    
     function purchasePhoneNumber(phoneNumber) {
         // Close the modal
-        $('#purchase-modal').modal('hide');
+        const purchaseModal = bootstrap.Modal.getInstance(document.getElementById('purchase-modal'));
+        if (purchaseModal) purchaseModal.hide();
         
         // Show loading indicator
-        const loadingHtml = `
-            <div class="d-flex justify-content-center align-items-center" style="min-height: 200px;">
-                <div class="text-center">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-2">Purchasing phone number...</p>
-                </div>
-            </div>
-        `;
+        const loadingModal = createLoadingModal('Purchasing...', 'Please wait while we purchase your number...');
+        loadingModal.show();
         
-        Swal.fire({
-            title: 'Purchasing...',
-            html: loadingHtml,
-            showConfirmButton: false,
-            allowOutsideClick: false,
-            didOpen: () => {
-                // Make API request
-                $.ajax({
-                    url: '{% url "purchase_twilio_number" %}',
-                    type: 'POST',
-                    data: JSON.stringify({ phone_number: phoneNumber }),
-                    contentType: 'application/json',
-                    success: function(response) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: `Phone number ${response.phone_number} has been purchased successfully.`,
-                            confirmButtonText: 'OK'
-                        }).then(() => {
-                            // Reload phone numbers
-                            loadPhoneNumbers();
-                        });
-                    },
-                    error: function(xhr) {
-                        let errorMessage = 'An error occurred while purchasing the phone number.';
-                        if (xhr.responseJSON && xhr.responseJSON.error) {
-                            errorMessage = xhr.responseJSON.error;
-                        }
-                        
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: errorMessage,
-                            confirmButtonText: 'OK'
-                        });
-                    }
-                });
+        // Make API request using fetch
+        fetch('{% url "purchase_twilio_number" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ phone_number: phoneNumber })
+        })
+        .then(response => {
+            loadingModal.hide();
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
             }
+            return response.json();
+        })
+        .then(response => {
+            showResultModal(
+                true, 
+                'Success!', 
+                `${phoneNumber} has been purchased successfully.`,
+                loadPhoneNumbers
+            );
+        })
+        .catch(error => {
+            let errorMessage = 'An error occurred while purchasing the phone number.';
+            if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            showResultModal(false, 'Error', errorMessage);
         });
     }
     
     function loadPhoneNumbers() {
         // Show loading indicator
-        $('#phone-numbers-container').hide();
-        $('#phone-numbers-error').hide();
-        $('#phone-numbers-loading').show();
+        document.getElementById('phone-numbers-container').style.display = 'none';
+        document.getElementById('phone-numbers-error').style.display = 'none';
+        document.getElementById('phone-numbers-loading').style.display = 'block';
         
-        // Make API request
-        $.ajax({
-            url: '{% url "get_twilio_numbers" %}',
-            type: 'GET',
-            success: function(response) {
-                $('#phone-numbers-loading').hide();
-                
-                // Clear previous results
-                $('#phone-numbers-table').empty();
-                
-                // Check if any numbers were found
-                if (response.numbers && response.numbers.length > 0) {
-                    // Populate results table
-                    response.numbers.forEach(function(number) {
-                        const isActive = number.is_active;
-                        const statusBadge = isActive 
-                            ? '<span class="badge bg-success">Active</span>'
-                            : '<span class="badge bg-secondary">Inactive</span>';
-                        
-                        const setActiveBtn = isActive
-                            ? ''
-                            : `<button class="btn btn-sm btn-success set-active-btn" data-phone="${number.phone_number}">
-                                <i class="mdi mdi-check-circle-outline me-1"></i> Set Active
-                               </button>`;
-                        
-                        $('#phone-numbers-table').append(`
-                            <tr>
-                                <td>${number.phone_number}</td>
-                                <td>${number.friendly_name}</td>
-                                <td>
-                                    <small class="text-muted">${number.sms_url || 'Not set'}</small>
-                                </td>
-                                <td>${statusBadge}</td>
-                                <td>
-                                    <button class="btn btn-sm btn-info update-webhook-btn me-1" data-sid="${number.sid}" data-phone="${number.phone_number}">
-                                        <i class="mdi mdi-link-variant me-1"></i> Update Webhook
-                                    </button>
-                                    ${setActiveBtn}
-                                </td>
-                            </tr>
-                        `);
-                    });
-                    
-                    $('#no-numbers').hide();
-                    $('#phone-numbers-container').show();
-                } else {
-                    // No numbers found
-                    $('#no-numbers').show();
-                    $('#phone-numbers-container').show();
-                }
-            },
-            error: function(xhr) {
-                $('#phone-numbers-loading').hide();
-                
-                // Show error message
-                let errorMessage = 'An error occurred while loading your phone numbers.';
-                if (xhr.responseJSON && xhr.responseJSON.error) {
-                    errorMessage = xhr.responseJSON.error;
-                }
-                
-                $('#phone-numbers-error-message').text(errorMessage);
-                $('#phone-numbers-error').show();
+        // Make API request using fetch
+        fetch('{% url "get_twilio_numbers" %}', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
             }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(response => {
+            document.getElementById('phone-numbers-loading').style.display = 'none';
+            
+            // Clear previous results
+            document.getElementById('phone-numbers-table').innerHTML = '';
+            
+            // Check if any numbers were found
+            if (response.numbers && response.numbers.length > 0) {
+                // Populate results table
+                response.numbers.forEach(function(number) {
+                    const isActive = number.is_active;
+                    const statusBadge = isActive 
+                        ? '<span class="badge bg-success">Active</span>'
+                        : '<span class="badge bg-secondary">Inactive</span>';
+                    
+                    const setActiveBtn = isActive
+                        ? ''
+                        : `<button class="btn btn-sm btn-success set-active-btn" data-phone="${number.phone_number}">
+                            <i class="mdi mdi-check-circle-outline me-1"></i> Set Active
+                           </button>`;
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${number.phone_number}</td>
+                        <td>${number.friendly_name}</td>
+                        <td>
+                            <small class="text-muted">${number.sms_url || 'Not set'}</small>
+                        </td>
+                        <td>${statusBadge}</td>
+                        <td>
+                            <button class="btn btn-sm btn-info update-webhook-btn me-1" data-sid="${number.sid}" data-phone="${number.phone_number}">
+                                <i class="mdi mdi-link-variant me-1"></i> Update Webhook
+                            </button>
+                            ${setActiveBtn}
+                        </td>
+                    `;
+                    document.getElementById('phone-numbers-table').appendChild(row);
+                });
+                
+                document.getElementById('no-numbers').style.display = 'none';
+                document.getElementById('phone-numbers-container').style.display = 'block';
+            } else {
+                // No numbers found
+                document.getElementById('no-numbers').style.display = 'block';
+                document.getElementById('phone-numbers-container').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            document.getElementById('phone-numbers-loading').style.display = 'none';
+            
+            // Show error message
+            let errorMessage = 'An error occurred while loading your phone numbers.';
+            if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            document.getElementById('phone-numbers-error-message').textContent = errorMessage;
+            document.getElementById('phone-numbers-error').style.display = 'block';
         });
     }
     
+    // Create loading modal HTML
+    function createLoadingModal(title, message) {
+        // Create modal container if it doesn't exist
+        let loadingModal = document.getElementById('loading-modal');
+        if (!loadingModal) {
+            loadingModal = document.createElement('div');
+            loadingModal.id = 'loading-modal';
+            loadingModal.className = 'modal fade';
+            loadingModal.setAttribute('tabindex', '-1');
+            loadingModal.setAttribute('aria-hidden', 'true');
+            loadingModal.innerHTML = `
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="loading-modal-title"></h5>
+                        </div>
+                        <div class="modal-body text-center">
+                            <div class="spinner-border text-primary mb-3" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p id="loading-modal-message"></p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(loadingModal);
+        }
+        
+        // Update content
+        document.getElementById('loading-modal-title').textContent = title;
+        document.getElementById('loading-modal-message').textContent = message;
+        
+        // Return the modal instance
+        return new bootstrap.Modal(loadingModal);
+    }
+    
+    // Create result modal HTML
+    function showResultModal(isSuccess, title, message, callback) {
+        // Create modal container if it doesn't exist
+        let resultModal = document.getElementById('result-modal');
+        if (!resultModal) {
+            resultModal = document.createElement('div');
+            resultModal.id = 'result-modal';
+            resultModal.className = 'modal fade';
+            resultModal.setAttribute('tabindex', '-1');
+            resultModal.setAttribute('aria-hidden', 'true');
+            resultModal.innerHTML = `
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="result-modal-title"></h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="result-modal-icon" class="text-center mb-3"></div>
+                            <p id="result-modal-message"></p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(resultModal);
+        }
+        
+        // Update content
+        document.getElementById('result-modal-title').textContent = title;
+        document.getElementById('result-modal-message').textContent = message;
+        
+        // Set icon based on success/error
+        const iconElement = document.getElementById('result-modal-icon');
+        iconElement.innerHTML = isSuccess ? 
+            '<i class="mdi mdi-check-circle-outline text-success" style="font-size: 3rem;"></i>' : 
+            '<i class="mdi mdi-alert-circle-outline text-danger" style="font-size: 3rem;"></i>';
+        
+        // Create and show modal
+        const modal = new bootstrap.Modal(resultModal);
+        modal.show();
+        
+        // Add event listener for when modal is hidden
+        if (callback) {
+            resultModal.addEventListener('hidden.bs.modal', function handler() {
+                callback();
+                resultModal.removeEventListener('hidden.bs.modal', handler);
+            });
+        }
+    }
+    
     function updateWebhook(phoneSid) {
-        // Close the modal
-        $('#webhook-modal').modal('hide');
+        // Close the webhook modal
+        const webhookModal = bootstrap.Modal.getInstance(document.getElementById('webhook-modal'));
+        if (webhookModal) webhookModal.hide();
+        
+        // Verify we have the phone SID
+        if (!phoneSid) {
+            showResultModal(false, 'Error', 'Phone SID is missing. Please try again.');
+            return;
+        }
         
         // Show loading indicator
-        Swal.fire({
-            title: 'Updating...',
-            text: 'Updating webhook URL...',
-            showConfirmButton: false,
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-                
-                // Make API request
-                $.ajax({
-                    url: '{% url "update_twilio_webhook" %}',
-                    type: 'POST',
-                    data: JSON.stringify({ phone_sid: phoneSid }),
-                    contentType: 'application/json',
-                    success: function(response) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: `Webhook URL for ${response.phone_number} has been updated successfully.`,
-                            confirmButtonText: 'OK'
-                        }).then(() => {
-                            // Reload phone numbers
-                            loadPhoneNumbers();
-                        });
-                    },
-                    error: function(xhr) {
-                        let errorMessage = 'An error occurred while updating the webhook URL.';
-                        if (xhr.responseJSON && xhr.responseJSON.error) {
-                            errorMessage = xhr.responseJSON.error;
-                        }
-                        
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: errorMessage,
-                            confirmButtonText: 'OK'
-                        });
-                    }
-                });
+        const loadingModal = createLoadingModal('Updating...', 'Updating webhook URL...');
+        loadingModal.show();
+        
+        // Make API request using fetch
+        fetch('{% url "update_twilio_webhook" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ phone_sid: phoneSid })
+        })
+        .then(response => {
+            loadingModal.hide();
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
             }
+            return response.json();
+        })
+        .then(response => {
+            showResultModal(
+                true, 
+                'Success!', 
+                `Webhook URL for ${response.phone_number} has been updated successfully.`,
+                loadPhoneNumbers
+            );
+        })
+        .catch(error => {
+            let errorMessage = 'An error occurred while updating the webhook URL.';
+            if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            showResultModal(false, 'Error', errorMessage);
         });
     }
     
     function setActiveNumber(phoneNumber) {
-        // Show loading indicator
-        Swal.fire({
-            title: 'Setting active number...',
-            text: 'Please wait...',
-            showConfirmButton: false,
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-                
-                // Make API request
-                $.ajax({
-                    url: '{% url "set_active_number" %}',
-                    type: 'POST',
-                    data: JSON.stringify({ phone_number: phoneNumber }),
-                    contentType: 'application/json',
-                    success: function(response) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: `${phoneNumber} has been set as your active SMS number.`,
-                            confirmButtonText: 'OK'
-                        }).then(() => {
-                            // Reload phone numbers
-                            loadPhoneNumbers();
-                        });
-                    },
-                    error: function(xhr) {
-                        let errorMessage = 'An error occurred while setting the active number.';
-                        if (xhr.responseJSON && xhr.responseJSON.error) {
-                            errorMessage = xhr.responseJSON.error;
-                        }
-                        
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: errorMessage,
-                            confirmButtonText: 'OK'
-                        });
-                    }
-                });
+        // Verify we have the phone number
+        if (!phoneNumber) {
+            showResultModal(false, 'Error', 'Phone number is missing. Please try again.');
+            return;
+        }
+        
+      
+        
+        // Make API request using fetch
+        fetch('{% url "set_active_number" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ phone_number: phoneNumber })
+        })
+        .then(response => {
+           
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
             }
+            return response.json();
+        })
+        .then(response => {
+            showResultModal(
+                true, 
+                'Success!', 
+                `${phoneNumber} has been set as your active SMS number.`,
+                loadPhoneNumbers
+            );
+        })
+        .catch(error => {
+            let errorMessage = 'An error occurred while setting the active number.';
+            if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            showResultModal(false, 'Error', errorMessage);
         });
     }
 </script>

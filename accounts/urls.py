@@ -72,5 +72,7 @@ urlpatterns = [
     path('thumbtack/connect/', thumbtack_views.thumbtack_connect, name='thumbtack_connect'),
     path('thumbtack/disconnect/', thumbtack_views.thumbtack_disconnect, name='thumbtack_disconnect'),
     path('thumbtack/callback/', thumbtack_views.thumbtack_callback_prod, name='thumbtack_callback_prod'),
-    path('thumbtack/callback/staging/', thumbtack_views.thumbtack_callback_dev, name='thumbtack_callback_dev'),
+    path('thumbtack/profile/', thumbtack_views.thumbtack_profile, name='thumbtack_profile'),
+    path('thumbtack/dashboard/', thumbtack_views.thumbtack_dashboard, name='thumbtack_dashboard'),
+    path('thumbtack/settings/', thumbtack_views.thumbtack_settings, name='thumbtack_settings'),
 ]

@@ -24,13 +24,14 @@ def get_cleaners_for_business(business, exclude_ids=None, assignment_check_null=
     active_cleaners = all_cleaners.filter(isActive=True)
     
     # Apply available filter
-    available_cleaners = active_cleaners.filter(isAvailable=True)
+    available_cleaners = active_cleaners
     
     cleaners = available_cleaners
     
     # Apply rating filter if needed
     if business.job_assignment == 'high_rated' and not assignment_check_null:
-        high_rated_cleaners = cleaners.filter(rating__gte=4)
+        max_rating = max(cleaners.values_list('rating', flat=True))
+        high_rated_cleaners = cleaners.filter(rating__gte=max_rating)
  
         cleaners = high_rated_cleaners
     
@@ -392,14 +393,28 @@ def check_availability_for_booking(request):
     try:
         date_str = request.GET.get('date')
         time_str = request.GET.get('time')
+        timezone_str = request.GET.get('timezone', 'UTC')
         
         if not date_str or not time_str:
             return JsonResponse({"error": "Missing date or time parameter"}, status=400)
         
+        # Parse the local date and time
         date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
         time_obj = datetime.strptime(time_str, '%H:%M').time()
         
-        datetime_to_check = datetime.combine(date_obj, time_obj)
+        # Combine into a datetime object
+        local_datetime = datetime.combine(date_obj, time_obj)
+        
+        # Convert from business timezone to UTC
+        try:
+            local_tz = pytz.timezone(timezone_str)
+            local_datetime_aware = local_tz.localize(local_datetime)
+            utc_datetime = local_datetime_aware.astimezone(pytz.UTC)
+            datetime_to_check = utc_datetime.replace(tzinfo=None)  # Remove tzinfo for compatibility with existing code
+        except pytz.exceptions.UnknownTimeZoneError:
+            # Fall back to naive datetime if timezone is invalid
+            print("Invalid timezone")
+            datetime_to_check = local_datetime
         
         current_business = request.user.business_set.first()
         cleaners = get_cleaners_for_business(current_business, assignment_check_null=True)
@@ -412,7 +427,22 @@ def check_availability_for_booking(request):
         alternative_slots = []
         if not is_available:
             alt_slots, _ = find_alternate_slots(cleaners, datetime_to_check, max_alternates=3)
-            alternative_slots = alt_slots
+            
+            # Convert alternative slots back to business timezone for display
+            formatted_alt_slots = []
+            for slot in alt_slots:
+                # Parse the slot string to datetime (with AM/PM format)
+                try:
+                    slot_dt = datetime.strptime(slot, '%Y-%m-%d %I:%M %p')
+                    slot_dt_utc = pytz.UTC.localize(slot_dt)
+                    slot_dt_local = slot_dt_utc.astimezone(local_tz)
+                    formatted_alt_slots.append(slot_dt_local.strftime('%Y-%m-%d %I:%M %p'))
+                except ValueError as e:
+                    # Log the error and skip this slot
+                    logger.error(f"Error parsing slot {slot}: {str(e)}")
+                    continue
+            
+            alternative_slots = formatted_alt_slots
         
         # Return response
         return JsonResponse({
@@ -424,9 +454,9 @@ def check_availability_for_booking(request):
                 "rating": c.rating
             } for c in available_cleaners]
         })
-        
     except Exception as e:
         import traceback
+        print(f"Error in check_availability_for_booking: {str(e)}")
         print(traceback.format_exc())
         return JsonResponse({"error": str(e)}, status=500)
 

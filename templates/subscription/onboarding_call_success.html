@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block title %}Onboarding Call Booked{% endblock %}
+
+{% block styles %}
+<style>
+    .success-card {
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .success-header {
+        background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+        padding: 2.5rem 2rem;
+        text-align: center;
+    }
+    
+    .checkmark-circle {
+        background-color: #28a745;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        box-shadow: 0 0 20px rgba(255,255,255,0.5);
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    .checkmark {
+        color: white;
+        font-size: 4rem;
+        text-shadow: 0 0 10px rgba(255,255,255,0.5);
+    }
+    
+    .video-container {
+        position: relative;
+        padding-bottom: 56.25%; /* 16:9 aspect ratio */
+        height: 0;
+        overflow: hidden;
+        max-width: 100%;
+        margin: 2rem 0;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .video-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+    }
+    
+    .content-section {
+        padding: 2.5rem;
+    }
+    
+    .highlight-text {
+        background-color: #f8f9fa;
+        border-left: 4px solid #0d6efd;
+        padding: 1rem;
+        margin: 1.5rem 0;
+        border-radius: 0 8px 8px 0;
+    }
+    
+    .signature {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e9ecef;
+        font-style: italic;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="success-card">
+                <!-- Success header -->
+                <div class="success-header">
+                    <div class="checkmark-circle">
+                        <i class="fas fa-calendar-check checkmark"></i>
+                    </div>
+                    <h1 class="text-white fw-bold mb-2">Thank You for Booking Your Onboarding Call</h1>
+                    <p class="text-white-50 mb-0">Your call has been scheduled successfully</p>
+                </div>
+                
+                <!-- Content section -->
+                <div class="content-section">
+                    <p class="lead">
+                        On our onboarding call, we'll make sure that your account setup is fully complete, and fully integrated so that you're ready to go.
+                    </p>
+                    
+                    <div class="highlight-text">
+                        <p class="mb-0"><strong>Note:</strong> We are in the beta phase of the Thumbtack integration so please be patient with this integration.</p>
+                    </div>
+                    
+                    <p>Be sure to ask as many questions as you can, and you can request that the call be recorded.</p>
+                    
+                    <p>In the meantime, reference our demo video for insights into the platform:</p>
+                    
+                    <!-- YouTube Video Embed -->
+                    <div class="video-container">
+                        <iframe 
+                            src="https://www.youtube.com/embed/8eGSZkqMLFo?si=BGntGDVBBeOdZ-wS" 
+                            title="CleaningBiz AI Platform Demo" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture;" 
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                    
+                    <p>We look forward to getting your setup, and getting you leads!</p>
+                    
+                    <div class="signature">
+                        <p class="mb-1">-CleaningBiz AI team</p>
+                        <a href="mailto:Support@cleaningbizai.com">Support@cleaningbizai.com</a>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <a href="{% url 'home' %}" class="btn btn-primary">
+                            <i class="fas fa-home me-2"></i>Return to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

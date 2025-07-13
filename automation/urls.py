@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .webhooks import handle_retell_webhook, thumbtack_webhook
+from .webhooks import handle_retell_webhook, thumbtack_webhook, chatgpt_analysis_webhook
 from .api_views import check_availability_retell, test_check_availability, check_availability_for_booking, create_booking, sendCommercialFormLink, reschedule_booking, cancel_booking
 from . import twilio_views
 
@@ -16,6 +16,7 @@ urlpatterns = [
     path('dashboard/', views.home, name='home'),
     path('webhook/<str:secretKey>/', handle_retell_webhook, name='retell_webhook'),
     path('webhook/thumbtack/<str:secretKey>/', thumbtack_webhook, name='thumbtack_webhook'),
+    path('lead/webhook/<str:secretKey>/', chatgpt_analysis_webhook, name='chatgpt_analysis_webhook'),
 
     # Lead Management URLs
     path('leads/', views.all_leads, name='all_leads'),

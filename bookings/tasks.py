@@ -378,7 +378,21 @@ def send_day_before_reminder():
                     api_cred = business.apicredentials
                     if api_cred.twilioAccountSid and api_cred.twilioAuthToken and api_cred.twilioSmsNumber:
                         client = Client(api_cred.twilioAccountSid, api_cred.twilioAuthToken)
-                        sms_message = f"Reminder from {business.businessName}: Your cleaning service is scheduled for tomorrow, {booking.cleaningDate.strftime('%A, %B %d')} at {booking.startTime.strftime('%I:%M %p')}. Please ensure access to your property. Questions? Call {business.phone}."
+                        # Convert UTC date and time to business timezone for display
+                        business_timezone = business.get_timezone()
+                        
+                        # Create datetime objects in UTC
+                        utc_datetime = datetime.datetime.combine(booking.cleaningDate, booking.startTime)
+                        utc_datetime = pytz.utc.localize(utc_datetime) if utc_datetime.tzinfo is None else utc_datetime
+                        
+                        # Convert to business timezone
+                        local_datetime = utc_datetime.astimezone(business_timezone)
+                        
+                        # Format the local date and time for display
+                        local_date = local_datetime.strftime('%A, %B %d')
+                        local_time = local_datetime.strftime('%I:%M %p')
+                        
+                        sms_message = f"Reminder from {business.businessName}: Your cleaning service is scheduled for tomorrow, {local_date} at {local_time}. Please ensure access to your property. Questions? Call {business.phone}."
                         client.messages.create(
                             body=sms_message,
                             from_=api_cred.twilioSmsNumber,
@@ -460,8 +474,21 @@ def send_hour_before_reminder():
                         # Initialize Twilio client
                         client = Client(api_cred.twilioAccountSid, api_cred.twilioAuthToken)
                         
+                        # Convert UTC date and time to business timezone for display
+                        business_timezone = business.get_timezone()
+                        
+                        # Create datetime objects in UTC
+                        utc_datetime = datetime.datetime.combine(booking.cleaningDate, booking.startTime)
+                        utc_datetime = pytz.utc.localize(utc_datetime) if utc_datetime.tzinfo is None else utc_datetime
+                        
+                        # Convert to business timezone
+                        local_datetime = utc_datetime.astimezone(business_timezone)
+                        
+                        # Format the local time for display
+                        local_time = local_datetime.strftime('%I:%M %p')
+                        
                         # SMS message content
-                        sms_message = f"REMINDER: Your {business.businessName} cleaning service begins in 1 hour at {booking.startTime.strftime('%I:%M %p')}. Please ensure property access. Questions? Call {business.phone}."
+                        sms_message = f"REMINDER: Your {business.businessName} cleaning service begins in 1 hour at {local_time}. Please ensure property access. Questions? Call {business.phone}."
                         
                         # Send SMS
                         message = client.messages.create(

@@ -101,7 +101,8 @@ INSTALLED_APPS = [
     'usage_analytics',
     'subscription',
     'retell_agent',
-    'admin_dashbaord'
+    'admin_dashbaord',
+    'saas',
 ]
 
 MIDDLEWARE = [
@@ -117,8 +118,12 @@ MIDDLEWARE = [
     'leadsAutomation.middleware.CustomRollbarNotifierMiddleware',
     'accounts.middleware.CleanerAccessMiddleware',  # Add cleaner access middleware
     'accounts.middleware.BusinessApprovalMiddleware',  # Add business approval middleware
+    'accounts.middleware.TimezoneMiddleware',  # Add timezone middleware
     
     'subscription.middleware.SubscriptionRequiredMiddleware',  # Add subscription middleware
+    'saas.middleware.MaintenanceModeMiddleware',  # Add maintenance mode middleware
+    'admin_dashbaord.middleware.UserActivityMiddleware',  # Track user page visits
+    'admin_dashbaord.activity_tracker.ActivityTrackingMiddleware',  # Track database operations
 ]
 
 ROOT_URLCONF = 'leadsAutomation.urls'
@@ -134,6 +139,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'accounts.context_processors.timezone_context',
             ],
         },
     },
@@ -234,9 +240,11 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Configure WhiteNoise for static file serving in production
-if not DEBUG:
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+# Media files (User uploads)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
@@ -343,8 +351,16 @@ LOGGING = {
 
 ROLLBAR = {
     'access_token': '92cb7249f2024f18aec00cb16b729224',
-    'environment': 'production',
+    'environment': 'production' if DEBUG else 'development',
     'code_version': '1.0',
     'root': BASE_DIR,
 }
 
+
+
+
+# Thumbtack 
+
+THUMBTACK_CLIENT_ID = os.getenv('THUMBTACK_CLIENT_ID')
+THUMBTACK_CLIENT_SECRET = os.getenv('THUMBTACK_CLIENT_SECRET')
+THUMBTACK_REDIRECT_URI = os.getenv('THUMBTACK_REDIRECT_URI')

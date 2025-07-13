@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Ticket #{{ ticket.id }}{% endblock %}
+
+{% block styles %}
+<style>
+    .ticket-container {
+        max-width: 100%;
+        margin: 0 auto;
+    }
+    .ticket-header {
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .ticket-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    .ticket-card:hover {
+        box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    }
+    .ticket-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+    .description-box {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #0d6efd;
+    }
+    .comment {
+        transition: all 0.2s ease;
+        border-radius: 12px;
+    }
+    .comment:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .staff-comment {
+        background-color: #f8f9fa;
+        border-left: 4px solid #0d6efd;
+    }
+    .user-comment {
+        background-color: white;
+        border-left: 4px solid #6c757d;
+    }
+    .comment-form {
+        background-color: #fff;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    .back-button {
+        transition: all 0.2s ease;
+    }
+    .back-button:hover {
+        transform: translateX(-5px);
+    }
+    .attachment-preview {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5 ticket-container">
+    <div class="mb-4">
+        <a href="{% url 'saas:my_tickets' %}" class="btn btn-outline-primary back-button">
+            <i class="fas fa-arrow-left me-2"></i> Back to My Tickets
+        </a>
+    </div>
+    
+    <div class="row">
+            
+            
+            <!-- Left Column: Ticket Details -->
+        <div class="col-lg-5">
+            <div class="card ticket-card mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center p-4 ticket-header">
+                    <h4 class="mb-0">Ticket #{{ ticket.id }}</h4>
+                    <span class="ticket-badge {% if ticket.status == 'new' %}bg-info{% elif ticket.status == 'in_progress' %}bg-warning{% elif ticket.status == 'resolved' %}bg-success{% else %}bg-secondary{% endif %} text-white">
+                        {{ ticket.get_status_display }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <h5 class="mb-3">{{ ticket.title }}</h5>
+                    
+                    <div class="mb-4">
+                        <p><strong>Category:</strong> {{ ticket.get_category_display }}</p>
+                        <p><strong>Priority:</strong> {{ ticket.get_priority_display }}</p>
+                        <p><strong>Created:</strong> {{ ticket.created_at|date:"M d, Y H:i" }}</p>
+                        {% if ticket.resolved_at %}
+                        <p><strong>Resolved:</strong> {{ ticket.resolved_at|date:"M d, Y H:i" }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5>Description</h5>
+                        <div class="p-4 description-box">
+                            {{ ticket.description|linebreaks }}
+                        </div>
+                    </div>
+                    
+                    {% if ticket.screenshot %}
+                    <div class="mb-4">
+                        <h5>Screenshot</h5>
+                        <a href="{{ ticket.screenshot.url }}" target="_blank">
+                            <img src="{{ ticket.screenshot.url }}" class="img-fluid attachment-preview" style="max-height: 300px;" alt="Screenshot">
+                        </a>
+                    </div>
+                    {% endif %}
+                    
+                    {% if ticket.url %}
+                    <div class="mb-4">
+                        <h5>Related URL</h5>
+                        <a href="{{ ticket.url }}" target="_blank">{{ ticket.url }}</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Column: Comments Section -->
+        <div class="col-lg-7">
+            <div class="card ticket-card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Comments</h5>
+                </div>
+                <div class="card-body">
+                    <div class="comments-list mb-4">
+                        {% for comment in comments %}
+                        <div class="comment mb-4 p-4 {% if comment.author.is_staff %}staff-comment{% else %}user-comment{% endif %}">
+                            <div class="d-flex justify-content-between mb-2">
+                                <div>
+                                    <strong>{{ comment.author.get_full_name }}</strong>
+                                    {% if comment.author.is_staff %}
+                                    <span class="badge bg-primary text-white ms-2">Staff</span>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">{{ comment.created_at|date:"M d, Y H:i" }}</small>
+                            </div>
+                            <p class="mb-2">{{ comment.content|linebreaks }}</p>
+                            {% if comment.attachment %}
+                            <div class="mt-2">
+                                <a href="{{ comment.attachment.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                    <i class="fas fa-paperclip me-1"></i> View Attachment
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% empty %}
+                        <p class="text-center text-muted py-3">No comments yet.</p>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if ticket.status != 'closed' %}
+                    <!-- Add Comment Form with POST/Redirect/GET pattern -->
+                    <form method="post" enctype="multipart/form-data" class="mt-4 comment-form" id="commentForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_submitted" value="1">
+                        
+                        <div class="form-group mb-3">
+                            <label for="content" class="form-label">Add a Comment</label>
+                            <textarea class="form-control" id="content" name="content" rows="4" required></textarea>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="attachment" class="form-label">Attachment (optional)</label>
+                            <input type="file" class="form-control" id="attachment" name="attachment">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-1"></i> Submit Comment
+                        </button>
+                    </form>
+                    {% else %}
+                    <div class="alert alert-secondary text-center">
+                        This ticket is closed. You cannot add more comments.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Prevent form resubmission on page refresh
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    }
+    
+    // Check if the form was just submitted and clear it
+    document.addEventListener('DOMContentLoaded', function() {
+        // If there was a successful form submission, clear the form
+        if (performance.navigation.type !== 1) { // Not a page refresh
+            const form = document.getElementById('commentForm');
+            if (form) {
+                form.reset();
+            }
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

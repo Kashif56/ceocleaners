@@ -49,6 +49,7 @@
                 <thead>
                     <tr>
                         <th>Username</th>
+                        <th>Business</th>
                         <th>Full Name</th>
                         <th>Email</th>
                         <th>User Type</th>
@@ -61,6 +62,15 @@
                     {% for user_obj in users %}
                     <tr>
                         <td>{{ user_obj.username }}</td>
+                        <td>
+                            {% if user_obj.business_set.exists %}
+                                <a href="{% url 'admin_dashboard:business_detail' user_obj.business_set.first.id %}">
+                                    {{ user_obj.business_set.first.businessName }}
+                                </a>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
                         <td>{{ user_obj.get_full_name|default:"-" }}</td>
                         <td>{{ user_obj.email|default:"-" }}</td>
                         <td>
@@ -68,6 +78,10 @@
                                 <span class="badge bg-danger-subtle text-danger">Superuser</span>
                             {% elif user_obj.is_staff %}
                                 <span class="badge bg-info-subtle text-info">Staff</span>
+                            {% elif user_obj.business_set.exists %}
+                                <span class="badge bg-success-subtle text-success">Business</span>
+                            {% elif user_obj.cleaner_profile %}
+                                <span class="badge bg-warning-subtle text-warning">Cleaner</span>
                             {% else %}
                                 <span class="badge bg-secondary-subtle text-secondary">Regular</span>
                             {% endif %}
@@ -81,23 +95,21 @@
                             {% endif %}
                         </td>
                         <td>{{ user_obj.date_joined|date:"M d, Y" }}</td>
-                        <td>
-                            {% if user_obj.is_active %}
-                                <span class="badge bg-success-subtle text-success">Active</span>
-                            {% else %}
-                                <span class="badge bg-danger-subtle text-danger">Inactive</span>
-                            {% endif %}
-                        </td>
+ 
                         <td>
                             <div class="btn-group">
-                                <a href="{% url 'admin_dashboard:edit_user' %}?id={{ user_obj.id }}" class="btn btn-sm btn-outline-primary">
+                                <a href="{% url 'admin_dashboard:edit_user' %}?id={{ user_obj.id }}" class="btn btn-sm btn-outline-primary" title="Edit User">
                                     <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'admin_dashboard:user_activity_logs' user_obj.id %}" class="btn btn-sm btn-outline-info" title="View Activity Logs">
+                                    <i class="fas fa-history"></i>
                                 </a>
                                 <button type="button" class="btn btn-sm btn-outline-danger delete-user-btn"
                                         data-id="{{ user_obj.id }}"
                                         data-username="{{ user_obj.username }}"
                                         data-bs-toggle="modal"
-                                        data-bs-target="#deleteUserModal">
+                                        data-bs-target="#deleteUserModal"
+                                        title="Delete User">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>

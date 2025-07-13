@@ -1,0 +1,136 @@
+{% extends 'admin_dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Platform Settings{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">Platform Settings</h1>
+    
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Update Platform Settings</h6>
+        </div>
+        <div class="card-body">
+            <form method="post" action="{% url 'admin_dashboard:platform_settings' %}">
+                {% csrf_token %}
+                
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h5 class="border-bottom pb-2">Company Information</h5>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="company_name">Company Name</label>
+                            <input type="text" class="form-control" id="company_name" name="company_name" value="{{ settings.company_name }}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="company_email">Company Email</label>
+                            <input type="email" class="form-control" id="company_email" name="company_email" value="{{ settings.company_email }}" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="company_phone">Company Phone</label>
+                            <input type="text" class="form-control" id="company_phone" name="company_phone" value="{{ settings.company_phone }}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="support_email">Support Email</label>
+                            <input type="email" class="form-control" id="support_email" name="support_email" value="{{ settings.support_email }}" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label for="company_address">Company Address</label>
+                            <textarea class="form-control" id="company_address" name="company_address" rows="3">{{ settings.company_address }}</textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h5 class="border-bottom pb-2">System Settings</h5>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="default_timezone">Default Timezone</label>
+                            <select class="form-control" id="default_timezone" name="default_timezone">
+                                <option value="UTC" {% if settings.default_timezone == 'UTC' %}selected{% endif %}>UTC</option>
+                                <option value="America/New_York" {% if settings.default_timezone == 'America/New_York' %}selected{% endif %}>Eastern Time (US & Canada)</option>
+                                <option value="America/Chicago" {% if settings.default_timezone == 'America/Chicago' %}selected{% endif %}>Central Time (US & Canada)</option>
+                                <option value="America/Denver" {% if settings.default_timezone == 'America/Denver' %}selected{% endif %}>Mountain Time (US & Canada)</option>
+                                <option value="America/Los_Angeles" {% if settings.default_timezone == 'America/Los_Angeles' %}selected{% endif %}>Pacific Time (US & Canada)</option>
+                                <option value="Europe/London" {% if settings.default_timezone == 'Europe/London' %}selected{% endif %}>London</option>
+                                <option value="Europe/Paris" {% if settings.default_timezone == 'Europe/Paris' %}selected{% endif %}>Paris</option>
+                                <option value="Asia/Tokyo" {% if settings.default_timezone == 'Asia/Tokyo' %}selected{% endif %}>Tokyo</option>
+                                <option value="Australia/Sydney" {% if settings.default_timezone == 'Australia/Sydney' %}selected{% endif %}>Sydney</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check mt-4">
+                            <input type="checkbox" class="form-check-input" id="maintenance_mode" name="maintenance_mode" {% if settings.maintenance_mode %}checked{% endif %}>
+                            <label class="form-check-label" for="maintenance_mode">Enable Maintenance Mode</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label for="maintenance_message">Maintenance Message</label>
+                            <textarea class="form-control" id="maintenance_message" name="maintenance_message" rows="3">{{ settings.maintenance_message }}</textarea>
+                            <small class="text-muted">This message will be displayed to users when maintenance mode is enabled.</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h5 class="border-bottom pb-2">Billing Settings</h5>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="setup_fee" name="setup_fee" {% if settings.setup_fee %}checked{% endif %}>
+                            <label class="form-check-label" for="setup_fee">Enable Setup Fee</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="setup_fee_amount">Setup Fee Amount ($)</label>
+                            <input type="number" step="0.01" class="form-control" id="setup_fee_amount" name="setup_fee_amount" value="{{ settings.setup_fee_amount }}" min="0">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-1"></i> Save Settings
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -73,22 +73,7 @@
                             </div>
                         </div>
 
-                        <div class="form-group mb-4">
-                            <label for="cleaner_pay_percentage" class="form-label">
-                                <i class="fas fa-map-marker-alt text-primary me-2"></i>Cleaner Pay Percentage
-                            </label>
-                            <div class="input-group">
-                                <span class="input-group-text">
-                                    <i class="fas fa-map-marked-alt text-muted"></i>
-                                </span>
-                               <input type="number" 
-                                       class="form-control" 
-                                       id="cleaner_pay_percentage" 
-                                       name="cleaner_pay_percentage" 
-                                       placeholder="Enter Cleaner Pay Percentage"
-                                       required>
-                            </div>
-                        </div>
+
 
                         <div class="form-group mb-4">
                             <label for="job_assignment" class="form-label">
@@ -108,6 +93,28 @@
                                     {% endfor %}
                                 </select>
                             </div>
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <label for="timezone" class="form-label">
+                                <i class="fas fa-clock text-primary me-2"></i>Business Timezone
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-globe text-muted"></i>
+                                </span>
+                                <select class="form-control" 
+                                          id="timezone" 
+                                          name="timezone" 
+                                          required>
+                                    {% for tz_value, tz_label in timezone_choices %}
+                                        <option value="{{ tz_value }}" {% if tz_value == 'America/New_York' %}selected{% endif %}>{{ tz_label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle me-1"></i>Select the timezone where your business operates
+                            </small>
                         </div>
                         
                         <div class="d-grid gap-2">

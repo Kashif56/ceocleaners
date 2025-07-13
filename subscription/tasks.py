@@ -26,9 +26,21 @@ def process_subscription_renewals():
     5. Records all transactions in the BillingHistory
     """
     print("Starting subscription renewal process")
+
+    
     
     # Get 2 days ago
     two_days_ago = timezone.now() - timedelta(days=2)
+
+    trial_plans = BusinessSubscription.objects.filter(
+        plan__plan_type='trial',
+        end_date__lte=timezone.now()
+    )
+    
+    for plan in trial_plans:
+        plan.is_active = False
+        plan.status = 'ended'
+        plan.save()
     
     # Find subscriptions that:
     # 1. Are marked as active in the database

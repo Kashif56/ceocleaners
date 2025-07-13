@@ -32,19 +32,31 @@ def LandingPage(request):
     from subscription.models import SubscriptionPlan, BusinessSubscription
     
     # Get all plans
-    plans = SubscriptionPlan.objects.filter(is_active=True, name__in=['Starter Plan', 'Professional Plan', 'Enterprise Plan']).order_by('price')
+    plans = SubscriptionPlan.objects.filter(is_active=True, is_invite_only=False).exclude(plan_tier='trial').order_by('price')
 
-    trial_plan = SubscriptionPlan.objects.filter(is_active=True, name__icontains='Trial').first()
+    trial_plan = SubscriptionPlan.objects.filter(is_active=True, plan_tier='trial').first()
+
+    
+    # Initialize variables
+    is_eligible_for_trial = True
+    business_subscriptions_count = 0
+    
     if request.user.is_authenticated:
         business = request.user.business_set.first()
-        is_eligible_for_trial = BusinessSubscription.objects.filter(plan=trial_plan, business=business).exists()
-    else:
-        is_eligible_for_trial = True
+        if business:
+            # Check trial eligibility
+            is_eligible_for_trial = not BusinessSubscription.objects.filter(plan=trial_plan, business=business).exists()
+            
+            # Count active business subscriptions
+            business_subscriptions_count = BusinessSubscription.objects.filter(
+                business=business
+            ).count()
     
     return render(request, 'core/LandingPage.html', {
         'plans': plans,
         'trial_plan': trial_plan,
-        'is_eligible_for_trial': is_eligible_for_trial
+        'is_eligible_for_trial': is_eligible_for_trial,
+        'business_subscriptions_count': business_subscriptions_count
     })
 
 def PricingPage(request):
@@ -52,9 +64,9 @@ def PricingPage(request):
     from subscription.models import SubscriptionPlan, Feature
    
     # Get all plans
-    plans = SubscriptionPlan.objects.filter(is_active=True, name__in=['Starter Plan', 'Professional Plan', 'Enterprise Plan']).order_by('price')
+    plans = SubscriptionPlan.objects.filter(is_active=True, is_invite_only=False).exclude(plan_tier='trial').order_by('price')
 
-    trial_plan = SubscriptionPlan.objects.filter(is_active=True, name__icontains='Trial').first()
+    trial_plan = SubscriptionPlan.objects.filter(is_active=True, plan_tier='trial').first()
     
     # Get all active features
     features = Feature.objects.filter(is_active=True).order_by('display_name')
@@ -234,6 +246,12 @@ def home(request):
     recent_activities.sort(key=lambda x: x['timestamp'], reverse=True)
     recent_activities = recent_activities[:10]
 
+    # Count active business subscriptions
+    from subscription.models import BusinessSubscription
+    business_subscriptions_count = BusinessSubscription.objects.filter(
+        business=business
+    ).count()
+    
     context = {
         'total_leads': total_leads,
         'converted_leads': converted_leads,
@@ -244,6 +262,7 @@ def home(request):
         'active_cleaners': active_cleaners,
         'top_rated_cleaners': top_rated_cleaners,
         'recent_activities': recent_activities,
+        'business_subscriptions_count': business_subscriptions_count,
     }
     
     return render(request, 'core/home.html', context)    
@@ -507,16 +526,33 @@ def add_cleaner(request):
             
             # Create default availability for each day
             weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-            default_start_time = '09:00'
-            default_end_time = '17:00'
+            
+            # Define default times in business timezone (9 AM to 5 PM)
+            business_timezone = pytz.timezone(business.timezone)
+            
+            # Create naive datetime objects with the default times
+            default_start_naive = datetime.combine(datetime.today().date(), datetime.strptime('09:00', '%H:%M').time())
+            default_end_naive = datetime.combine(datetime.today().date(), datetime.strptime('17:00', '%H:%M').time())
+            
+            # Localize to business timezone
+            default_start_local = business_timezone.localize(default_start_naive)
+            default_end_local = business_timezone.localize(default_end_naive)
+            
+            # Convert to UTC for storage
+            default_start_utc = default_start_local.astimezone(pytz.UTC)
+            default_end_utc = default_end_local.astimezone(pytz.UTC)
+            
+            # Extract just the time part for saving
+            default_start_time_utc = default_start_utc.time()
+            default_end_time_utc = default_end_utc.time()
             
             for day in weekdays:
                 CleanerAvailability.objects.create(
                     cleaner=cleaner,
                     availability_type='weekly',
                     dayOfWeek=day,
-                    startTime=default_start_time,
-                    endTime=default_end_time
+                    startTime=default_start_time_utc,
+                    endTime=default_end_time_utc
                 )
             
             messages.success(request, 'Cleaner added successfully.')
@@ -569,10 +605,15 @@ def cleaner_detail(request, cleaner_id):
         availability_type='specific'
     ).order_by('specific_date')
     
-    # Get current date and time
-    now = timezone.now()
-    current_date = now.date()
-    current_time = now.time()
+    # Get current date and time in business timezone
+    now_utc = timezone.now()
+    
+    # Get business timezone
+    business_timezone = pytz.timezone(business.timezone)
+    
+   
+    current_date = now_utc.date()
+    current_time = now_utc.time()
     
     # Check if a specific date was provided in the URL
     date_str = request.GET.get('date', None)
@@ -616,7 +657,7 @@ def cleaner_detail(request, cleaner_id):
                 current_week_exceptions_by_weekday[weekday] = []
             current_week_exceptions_by_weekday[weekday].append(avail)
     
-    logger.info(f"Fetching bookings for cleaner {cleaner.name} at {now}")
+    
     
     # Get cleaner's current booking (if any)
     current_booking = Booking.objects.filter(
@@ -626,8 +667,7 @@ def cleaner_detail(request, cleaner_id):
         endTime__gt=current_time
     ).first()
     
-    if current_booking:
-        logger.info(f"Current booking found: {current_booking.id}")
+    
     
     # Get upcoming bookings (future bookings that are not completed)
     upcoming_bookings = Booking.objects.filter(
@@ -655,13 +695,13 @@ def cleaner_detail(request, cleaner_id):
     
     
     # Calculate availability status based on business hours and current bookings
-    current_weekday = now.strftime('%A')
+    current_weekday = now_utc.strftime('%A')
     
     # First check if there's a specific date entry for today
     today_specific_availability = specific_availabilities.filter(specific_date=current_date).first()
     
     # Default to not available
-    is_available = False
+    is_available = True
     
     # Check if cleaner has a current booking - if so, they're not available
     if current_booking:
@@ -706,6 +746,7 @@ def cleaner_detail(request, cleaner_id):
         'open_jobs': open_jobs,
         'is_available': is_available,
         'today': current_date,
+        'business_timezone': business.timezone,
         'monday_date': monday_date,
         'sunday_date': sunday_date,
         'prev_week_monday': prev_week_monday,
@@ -802,15 +843,36 @@ def update_cleaner_schedule(request, cleaner_id):
                 'Sunday': 6
             }
             
+            # Get business timezone
+            business_timezone = pytz.timezone(business.timezone)
+            today = datetime.today().date()
+            
             # Create new weekly availabilities
             for i, day in enumerate(sorted(days, key=lambda x: day_order.get(x, 7))):
                 is_off_day = day in off_days
+                
+                if not is_off_day:
+                    # Convert start time from business timezone to UTC
+                    start_time_str = start_times[i]
+                    start_time_naive = datetime.combine(today, datetime.strptime(start_time_str, '%H:%M').time())
+                    start_time_local = business_timezone.localize(start_time_naive)
+                    start_time_utc = start_time_local.astimezone(pytz.UTC).time()
+                    
+                    # Convert end time from business timezone to UTC
+                    end_time_str = end_times[i]
+                    end_time_naive = datetime.combine(today, datetime.strptime(end_time_str, '%H:%M').time())
+                    end_time_local = business_timezone.localize(end_time_naive)
+                    end_time_utc = end_time_local.astimezone(pytz.UTC).time()
+                else:
+                    start_time_utc = None
+                    end_time_utc = None
+                
                 CleanerAvailability.objects.create(
                     cleaner=cleaner,
                     availability_type='weekly',
                     dayOfWeek=day,
-                    startTime=start_times[i] if not is_off_day else None,
-                    endTime=end_times[i] if not is_off_day else None,
+                    startTime=start_time_utc,
+                    endTime=end_time_utc,
                     offDay=is_off_day
                 )
             
@@ -824,6 +886,22 @@ def update_cleaner_schedule(request, cleaner_id):
                     specific_date = datetime.strptime(date_str, '%Y-%m-%d').date()
                     is_off_day = date_str in specific_off_days
                     
+                    if not is_off_day:
+                        # Convert start time from business timezone to UTC
+                        start_time_str = specific_start_times[i]
+                        start_time_naive = datetime.combine(specific_date, datetime.strptime(start_time_str, '%H:%M').time())
+                        start_time_local = business_timezone.localize(start_time_naive)
+                        start_time_utc = start_time_local.astimezone(pytz.UTC).time()
+                        
+                        # Convert end time from business timezone to UTC
+                        end_time_str = specific_end_times[i]
+                        end_time_naive = datetime.combine(specific_date, datetime.strptime(end_time_str, '%H:%M').time())
+                        end_time_local = business_timezone.localize(end_time_naive)
+                        end_time_utc = end_time_local.astimezone(pytz.UTC).time()
+                    else:
+                        start_time_utc = None
+                        end_time_utc = None
+                    
                     # Check if entry already exists
                     existing = CleanerAvailability.objects.filter(
                         cleaner=cleaner,
@@ -833,8 +911,8 @@ def update_cleaner_schedule(request, cleaner_id):
                     
                     if existing:
                         # Update existing
-                        existing.startTime = specific_start_times[i] if not is_off_day else None
-                        existing.endTime = specific_end_times[i] if not is_off_day else None
+                        existing.startTime = start_time_utc
+                        existing.endTime = end_time_utc
                         existing.offDay = is_off_day
                         existing.save()
                     else:
@@ -843,8 +921,8 @@ def update_cleaner_schedule(request, cleaner_id):
                             cleaner=cleaner,
                             availability_type='specific',
                             specific_date=specific_date,
-                            startTime=specific_start_times[i] if not is_off_day else None,
-                            endTime=specific_end_times[i] if not is_off_day else None,
+                            startTime=start_time_utc,
+                            endTime=end_time_utc,
                             offDay=is_off_day
                         )
             
@@ -879,6 +957,23 @@ def add_specific_date(request, cleaner_id):
             # Convert to date object
             date_obj = datetime.strptime(specific_date, '%Y-%m-%d').date()
             
+            # Get business timezone
+            business_timezone = pytz.timezone(business.timezone)
+            
+            if not is_off_day:
+                # Convert start time from business timezone to UTC
+                start_time_naive = datetime.combine(date_obj, datetime.strptime(start_time, '%H:%M').time())
+                start_time_local = business_timezone.localize(start_time_naive)
+                start_time_utc = start_time_local.astimezone(pytz.UTC).time()
+                
+                # Convert end time from business timezone to UTC
+                end_time_naive = datetime.combine(date_obj, datetime.strptime(end_time, '%H:%M').time())
+                end_time_local = business_timezone.localize(end_time_naive)
+                end_time_utc = end_time_local.astimezone(pytz.UTC).time()
+            else:
+                start_time_utc = None
+                end_time_utc = None
+            
             # Check if entry already exists
             existing = CleanerAvailability.objects.filter(
                 cleaner=cleaner,
@@ -888,8 +983,8 @@ def add_specific_date(request, cleaner_id):
             
             if existing:
                 # Update existing
-                existing.startTime = start_time if not is_off_day else None
-                existing.endTime = end_time if not is_off_day else None
+                existing.startTime = start_time_utc
+                existing.endTime = end_time_utc
                 existing.offDay = is_off_day
                 existing.save()
                 messages.success(request, f'Updated exception for {specific_date}')
@@ -899,8 +994,8 @@ def add_specific_date(request, cleaner_id):
                     cleaner=cleaner,
                     availability_type='specific',
                     specific_date=date_obj,
-                    startTime=start_time if not is_off_day else None,
-                    endTime=end_time if not is_off_day else None,
+                    startTime=start_time_utc,
+                    endTime=end_time_utc,
                     offDay=is_off_day
                 )
                 messages.success(request, f'Added exception for {specific_date}')
@@ -1595,7 +1690,7 @@ def sitemap(request):
     """
     Render the sitemap page showing all available routes in the application.
     """
-    return render(request, 'sitemap.html')
+    return render(request, 'core/sitemap.html')
 
 
 @login_required

@@ -25,19 +25,15 @@
                         <span>Business Info</span>
                     </a>
                     <a class="list-group-item list-group-item-action d-flex align-items-center" 
-                       href="{% url 'accounts:payment_square' %}">
+                       id="settings-tab" 
+                       href="{% url 'accounts:profile' %}#settings">
                         <div class="icon-circle">
-                            <i class="fas fa-credit-card"></i>
+                            <i class="fas fa-cog"></i>
                         </div>
-                        <span>Payment Settings</span>
+                        <span>Settings</span>
                     </a>
-                    <a class="list-group-item list-group-item-action d-flex align-items-center" 
-                       href="{% url 'accounts:smtp_config' %}">
-                        <div class="icon-circle">
-                            <i class="fas fa-envelope"></i>
-                        </div>
-                        <span>Email Config</span>
-                    </a>
+                    
+                    <!-- Team Members Link -->
                     <a class="list-group-item list-group-item-action d-flex align-items-center active" 
                        href="{% url 'accounts:manage_cleaners' %}">
                         <div class="icon-circle">
@@ -46,14 +42,24 @@
                         <span>Team Members</span>
                     </a>
                     <a class="list-group-item list-group-item-action d-flex align-items-center" 
-                       href="{% url 'bookings:all_bookings' %}">
+                       id="pricing-tab" 
+                       href="{% url 'accounts:profile' %}#pricing">
                         <div class="icon-circle">
-                            <i class="fas fa-calendar-check"></i>
+                            <i class="fas fa-dollar-sign"></i>
                         </div>
-                        <span>Bookings</span>
+                        <span>Pricing</span>
                     </a>
                     <a class="list-group-item list-group-item-action d-flex align-items-center" 
-                       href="{% url 'accounts:profile' %}">
+                       id="api-credentials-tab" 
+                       href="{% url 'accounts:profile' %}#api-credentials">
+                        <div class="icon-circle">
+                            <i class="fas fa-key"></i>
+                        </div>
+                        <span>API Credentials</span>
+                    </a>
+                    <a class="list-group-item list-group-item-action d-flex align-items-center" 
+                       id="custom-addons-tab" 
+                       href="{% url 'accounts:profile' %}#custom-addons">
                         <div class="icon-circle">
                             <i class="fas fa-puzzle-piece"></i>
                         </div>

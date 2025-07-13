@@ -1,0 +1,315 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Maintenance | CleaningBiz AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary: #4e73df;
+            --secondary: #858796;
+            --success: #1cc88a;
+            --info: #36b9cc;
+            --warning: #f6c23e;
+            --danger: #e74a3b;
+            --light: #f8f9fc;
+            --dark: #5a5c69;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--light) 0%, #e8f0fe 100%);
+            font-family: 'Poppins', sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(78, 115, 223, 0.1);
+            animation: float 15s infinite ease-in-out;
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0);
+            }
+            25% {
+                transform: translateY(-20px) translateX(10px);
+            }
+            50% {
+                transform: translateY(0) translateX(20px);
+            }
+            75% {
+                transform: translateY(20px) translateX(10px);
+            }
+        }
+        
+        .maintenance-container {
+            max-width: 700px;
+            width: 90%;
+            text-align: center;
+            padding: 3rem;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            position: relative;
+            z-index: 10;
+            animation: fadeIn 0.8s ease-out, slideUp 0.8s ease-out;
+            overflow: hidden;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(30px); }
+            to { transform: translateY(0); }
+        }
+        
+        .maintenance-icon {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 2rem;
+            background-color: rgba(78, 115, 223, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .maintenance-icon i {
+            font-size: 3.5rem;
+            color: var(--primary);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        
+        .maintenance-icon::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid rgba(78, 115, 223, 0.3);
+            animation: ripple 2s infinite;
+        }
+        
+        @keyframes ripple {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+        
+        h1 {
+            color: var(--dark);
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            font-size: 2.2rem;
+        }
+        
+        .message {
+            color: var(--secondary);
+            font-size: 1.1rem;
+            line-height: 1.7;
+            margin-bottom: 2.5rem;
+            padding: 0 1rem;
+        }
+        
+        .countdown {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+        
+        .countdown-item {
+            margin: 0 10px;
+            text-align: center;
+            min-width: 60px;
+        }
+        
+        .countdown-number {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--primary);
+            background-color: rgba(78, 115, 223, 0.1);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 5px;
+        }
+        
+        .countdown-label {
+            font-size: 0.8rem;
+            color: var(--secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .footer {
+            margin-top: 2.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            font-size: 0.9rem;
+            color: var(--secondary);
+        }
+        
+        .social-links {
+            margin-top: 1rem;
+        }
+        
+        .social-links a {
+            display: inline-block;
+            width: 36px;
+            height: 36px;
+            line-height: 36px;
+            border-radius: 50%;
+            background-color: rgba(78, 115, 223, 0.1);
+            color: var(--primary);
+            margin: 0 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .social-links a:hover {
+            background-color: var(--primary);
+            color: white;
+            transform: translateY(-3px);
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated background particles -->
+    <div class="particles" id="particles"></div>
+    
+    <div class="maintenance-container">
+        <div class="maintenance-icon">
+            <i class="fas fa-tools"></i>
+        </div>
+        <h1>Site Under Maintenance</h1>
+        <div class="message">
+            {{ maintenance_message|default:"We're currently performing scheduled maintenance to improve your experience. Our team is working hard to bring everything back online as soon as possible. Thank you for your patience." }}
+        </div>
+        
+        <!-- Estimated countdown -->
+        <div class="countdown">
+            <div class="countdown-item">
+                <div class="countdown-number" id="hours">00</div>
+                <div class="countdown-label">Hours</div>
+            </div>
+            <div class="countdown-item">
+                <div class="countdown-number" id="minutes">00</div>
+                <div class="countdown-label">Minutes</div>
+            </div>
+            <div class="countdown-item">
+                <div class="countdown-number" id="seconds">00</div>
+                <div class="countdown-label">Seconds</div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; {% now "Y" %} CleaningBiz AI. All rights reserved.</p>
+            <div class="social-links">
+                <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Create animated background particles
+        document.addEventListener('DOMContentLoaded', function() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 15;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                
+                // Random size between 20px and 100px
+                const size = Math.random() * 80 + 20;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                
+                // Random position
+                particle.style.top = `${Math.random() * 100}%`;
+                particle.style.left = `${Math.random() * 100}%`;
+                
+                // Random animation delay
+                particle.style.animationDelay = `${Math.random() * 10}s`;
+                
+                particlesContainer.appendChild(particle);
+            }
+            
+            // Set countdown timer for 2 hours from now
+            const countdownDate = new Date();
+            countdownDate.setHours(countdownDate.getHours() + 2);
+            
+            // Update countdown every second
+            const countdown = setInterval(function() {
+                const now = new Date().getTime();
+                const distance = countdownDate - now;
+                
+                // Time calculations
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                
+                // Display the result
+                document.getElementById('hours').innerHTML = hours.toString().padStart(2, '0');
+                document.getElementById('minutes').innerHTML = minutes.toString().padStart(2, '0');
+                document.getElementById('seconds').innerHTML = seconds.toString().padStart(2, '0');
+                
+                // If the countdown is finished, reset it
+                if (distance < 0) {
+                    clearInterval(countdown);
+                    countdownDate.setHours(countdownDate.getHours() + 2);
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

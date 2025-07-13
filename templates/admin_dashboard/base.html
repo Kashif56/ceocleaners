@@ -20,19 +20,19 @@
         
         /* Scale specific elements to maintain proportions */
         body {
-            font-size: 0.875rem; /* ~10.5px */
+            font-size: 1rem; /* ~10.5px */
         }
         
         .h1, h1 {
-            font-size: 1.75rem; /* ~21px */
+            font-size: 2rem; /* ~21px */
         }
         
         .h2, h2 {
-            font-size: 1.5rem; /* ~18px */
+            font-size: 1.75rem; /* ~18px */
         }
         
         .h3, h3 {
-            font-size: 1.25rem; /* ~15px */
+            font-size: 1.5rem; /* ~15px */
         }
         
         .h4, h4 {
@@ -44,22 +44,22 @@
         }
         
         .h6, h6 {
-            font-size: 0.875rem; /* ~10.5px */
+            font-size: 1rem; /* ~10.5px */
         }
         
         /* Ensure buttons and form controls are properly sized */
         .btn, input, select, textarea {
-            font-size: 0.875rem;
+            font-size: 1rem;
         }
         
         /* Table text */
         .table {
-            font-size: 0.875rem;
+            font-size: 1rem;
         }
         
         /* Small text */
         small, .small {
-            font-size: 0.75rem;
+            font-size: 1rem;
         }
         
         /* Admin Dashboard Styles */
@@ -106,6 +106,15 @@
         .sidebar {
             width: var(--sidebar-width);
             height: 100vh;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            --scrollbar-width: 8px;
+            --scrollbar-track-color: rgba(255, 255, 255, 0.1);
+            --scrollbar-thumb-color: rgba(255, 255, 255, 0.3);
+            
+            /* Custom Scrollbar */
+            scrollbar-width: var(--scrollbar-width) !important;
+            scrollbar-color: var(--scrollbar-thumb-color) var(--scrollbar-track-color) !important;
             position: fixed;
             top: 0;
             left: 0;
@@ -514,6 +523,12 @@
                         <span>Subscriptions</span>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if 'billing_history_list' in request.path %}active{% endif %}" href="{% url 'admin_dashboard:billing_history_list' %}">
+                        <i class="fas fa-fw fa-store"></i>
+                        <span>Billing History</span>
+                    </a>
+                </li>
             </ul>
             
             <hr class="sidebar-divider">
@@ -546,6 +561,18 @@
                         <span>Recent Activities</span>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if 'platform-settings' in request.path %}active{% endif %}" href="{% url 'admin_dashboard:platform_settings' %}">
+                        <i class="fas fa-fw fa-cogs"></i>
+                        <span>Platform Settings</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if 'support-tickets' in request.path %}active{% endif %}" href="{% url 'admin_dashboard:support_tickets' %}">
+                        <i class="fas fa-fw fa-ticket-alt"></i>
+                        <span>Support Tickets</span>
+                    </a>
+                </li>
             </ul>
             
             <hr class="sidebar-divider d-none d-md-block">
@@ -576,9 +603,9 @@
                 <div class="dropdown">
                     <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <div class="d-flex align-items-center px-3 py-2 rounded-pill bg-light me-2">
-                            <span class="d-none d-md-inline fw-medium text-primary me-2">{{ request.user.username }}</span>
+                            <span class="d-none d-md-inline fw-medium text-primary me-2">{% if request.user %}{{ request.user.username }}{% else %}Guest{% endif %}</span>
                             <div class="avatar-circle">
-                                <span class="avatar-initials">{{ request.user.username|slice:":1"|upper }}</span>
+                                <span class="avatar-initials">{% if request.user %}{{ request.user.username|slice:":1"|upper }}{% else %}G{% endif %}</span>
                             </div>
                         </div>
                     </a>
@@ -586,11 +613,11 @@
                         <li class="dropdown-header">
                             <div class="d-flex align-items-center justify-content-center">
                                 <div class="avatar-circle-lg me-3">
-                                    <span class="avatar-initials">{{ request.user.username|slice:":1"|upper }}</span>
+                                    <span class="avatar-initials">{% if request.user %}{{ request.user.username|slice:":1"|upper }}{% else %}G{% endif %}</span>
                                 </div>
                                 <div>
-                                    <h6 class="mb-0">{{ request.user.get_full_name|default:request.user.username }}</h6>
-                                    <small class="text-muted">{{ request.user.email }}</small>
+                                    <h6 class="mb-0">{% if request.user %}{{ request.user.get_full_name|default:request.user.username }}{% else %}Guest{% endif %}</h6>
+                                    <small class="text-muted">{% if request.user %}{{ request.user.email }}{% endif %}</small>
                                 </div>
                             </div>
                         </li>

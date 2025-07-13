@@ -55,9 +55,13 @@ def all_chats(request):
             lead = Lead.objects.filter(phone_number=chat.clientPhoneNumber).first()
             chat.lead_name = lead.name if lead else chat.clientPhoneNumber or f"WebChat: {chat.sessionKey}"
         
+        # Get business timezone for template use
+        business_timezone = business.get_timezone()
+        
         return render(request, 'ai_agent/all_chats.html', {
             'chats': chats,
-            'business': business
+            'business': business,
+            'user_timezone': business_timezone  # Pass timezone to template
         })
         
     except Exception as e:
@@ -232,6 +236,24 @@ def agent_config_save(request):
         'success': True, 
         'message': f"Configuration for {business.businessName} updated successfully.",
         'system_prompt': system_prompt
+    })
+
+
+@login_required
+def embed_agent(request):
+    """View for embedding AI Agent on external websites"""
+    business = Business.objects.filter(user=request.user).first()
+    
+    if not business:
+        messages.error(request, "You need to have a business registered before configuring the AI Agent.")
+        return redirect('home')
+    
+    # Get configuration for this business
+    config = AgentConfiguration.objects.filter(business=business).first()
+    
+    return render(request, 'ai_agent/embed_agent.html', {
+        'config': config,
+        'business': business
     })
         
   

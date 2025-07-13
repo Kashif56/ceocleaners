@@ -1,0 +1,70 @@
+{% load static %}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Recent Activities</h5>
+        <a href="{% url 'admin_dashboard:activity_logs' %}" class="btn btn-sm btn-outline-primary">View All</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Time</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in recent_activities %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div>{{ log.user.username }}</div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if log.activity_type == 'create' %}
+                                <span class="badge bg-success-subtle text-success">Create</span>
+                            {% elif log.activity_type == 'update' %}
+                                <span class="badge bg-info-subtle text-info">Update</span>
+                            {% elif log.activity_type == 'delete' %}
+                                <span class="badge bg-danger-subtle text-danger">Delete</span>
+                            {% elif log.activity_type == 'login' %}
+                                <span class="badge bg-primary-subtle text-primary">Login</span>
+                            {% elif log.activity_type == 'logout' %}
+                                <span class="badge bg-secondary-subtle text-secondary">Logout</span>
+                            {% elif log.activity_type == 'payment' %}
+                                <span class="badge bg-warning-subtle text-warning">Payment</span>
+                            {% elif log.activity_type == 'subscription' %}
+                                <span class="badge bg-purple-subtle text-purple">Subscription</span>
+                            {% else %}
+                                <span class="badge bg-dark-subtle text-dark">{{ log.get_activity_type_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="text-truncate d-inline-block" style="max-width: 300px;">
+                                {{ log.description }}
+                            </span>
+                        </td>
+                        <td>
+                            <span title="{{ log.timestamp|date:'M d, Y H:i:s' }}">
+                                {{ log.timestamp|timesince }} ago
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'admin_dashboard:activity_log_detail' log.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-3">No recent activities</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

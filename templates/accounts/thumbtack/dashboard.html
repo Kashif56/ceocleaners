@@ -1,0 +1,354 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Thumbtack Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Thumbtack Integration Dashboard</h4>
+                    <div>
+                        <a href="{% url 'accounts:profile' %}" class="btn btn-light btn-sm mr-2">
+                            <i class="fas fa-arrow-left mr-1"></i> Back to Profile
+                        </a>
+                        {% if thumbtack_profile %}
+                        <a href="{% url 'accounts:thumbtack_disconnect' %}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to disconnect your Thumbtack account?')">
+                            <i class="fas fa-unlink mr-1"></i> Disconnect
+                        </a>
+                        {% else %}
+                        <a href="{% url 'accounts:thumbtack_connect' %}" class="btn btn-success btn-sm">
+                            <i class="fas fa-plug mr-1"></i> Connect
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if thumbtack_profile %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle mr-2"></i> Your account is connected to Thumbtack
+                        </div>
+                        
+                        <!-- Status Overview Cards -->
+                        <div class="row mb-4">
+                            <div class="col-xl-3 col-md-6 mb-4">
+                                <div class="card border-left-primary shadow h-100 py-2">
+                                    <div class="card-body">
+                                        <div class="row no-gutters align-items-center">
+                                            <div class="col mr-2">
+                                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                    New Leads (Today)</div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ today_leads|default:"0" }}</div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <i class="fas fa-user-plus fa-2x text-gray-300"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-3 col-md-6 mb-4">
+                                <div class="card border-left-success shadow h-100 py-2">
+                                    <div class="card-body">
+                                        <div class="row no-gutters align-items-center">
+                                            <div class="col mr-2">
+                                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                                    Conversion Rate</div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ conversion_rate|default:"0%" }}</div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <i class="fas fa-percentage fa-2x text-gray-300"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-3 col-md-6 mb-4">
+                                <div class="card border-left-info shadow h-100 py-2">
+                                    <div class="card-body">
+                                        <div class="row no-gutters align-items-center">
+                                            <div class="col mr-2">
+                                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                                    Total Bookings</div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_bookings|default:"0" }}</div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-3 col-md-6 mb-4">
+                                <div class="card border-left-warning shadow h-100 py-2">
+                                    <div class="card-body">
+                                        <div class="row no-gutters align-items-center">
+                                            <div class="col mr-2">
+                                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                    Revenue (This Month)</div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800">${{ monthly_revenue|default:"0" }}</div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Leads Table -->
+                        <div class="card shadow mb-4">
+                            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                <h6 class="m-0 font-weight-bold text-primary">Recent Leads from Thumbtack</h6>
+                                <button class="btn btn-sm btn-primary" id="refreshLeads">
+                                    <i class="fas fa-sync-alt mr-1"></i> Refresh
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                {% if recent_leads %}
+                                <div class="table-responsive">
+                                    <table class="table table-bordered" id="leadsTable" width="100%" cellspacing="0">
+                                        <thead>
+                                            <tr>
+                                                <th>Customer</th>
+                                                <th>Service</th>
+                                                <th>Location</th>
+                                                <th>Date</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for lead in recent_leads %}
+                                            <tr>
+                                                <td>{{ lead.customer_name }}</td>
+                                                <td>{{ lead.service_type }}</td>
+                                                <td>{{ lead.location }}</td>
+                                                <td>{{ lead.created_at|date:"M d, Y" }}</td>
+                                                <td>
+                                                    {% if lead.status == 'new' %}
+                                                    <span class="badge badge-primary">New</span>
+                                                    {% elif lead.status == 'contacted' %}
+                                                    <span class="badge badge-info">Contacted</span>
+                                                    {% elif lead.status == 'booked' %}
+                                                    <span class="badge badge-success">Booked</span>
+                                                    {% elif lead.status == 'lost' %}
+                                                    <span class="badge badge-danger">Lost</span>
+                                                    {% else %}
+                                                    <span class="badge badge-secondary">{{ lead.status|title }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <a href="#" class="btn btn-sm btn-primary view-lead" data-id="{{ lead.id }}">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-sm btn-success convert-lead" data-id="{{ lead.id }}">
+                                                        <i class="fas fa-exchange-alt"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% else %}
+                                <div class="text-center py-4">
+                                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                    <p>No recent leads from Thumbtack.</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Settings Card -->
+                        <div class="card shadow mb-4">
+                            <div class="card-header py-3">
+                                <h6 class="m-0 font-weight-bold text-primary">Thumbtack Integration Settings</h6>
+                            </div>
+                            <div class="card-body">
+                                <form method="post" action="{% url 'accounts:thumbtack_settings' %}">
+                                    {% csrf_token %}
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="auto_import">Auto-Import Leads</label>
+                                                <select class="form-control" id="auto_import" name="auto_import">
+                                                    <option value="yes" {% if thumbtack_settings.auto_import %}selected{% endif %}>Yes</option>
+                                                    <option value="no" {% if not thumbtack_settings.auto_import %}selected{% endif %}>No</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="auto_respond">Auto-Respond to New Leads</label>
+                                                <select class="form-control" id="auto_respond" name="auto_respond">
+                                                    <option value="yes" {% if thumbtack_settings.auto_respond %}selected{% endif %}>Yes</option>
+                                                    <option value="no" {% if not thumbtack_settings.auto_respond %}selected{% endif %}>No</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="auto_response_template">Auto-Response Template</label>
+                                        <textarea class="form-control" id="auto_response_template" name="auto_response_template" rows="3">{{ thumbtack_settings.auto_response_template|default:"Thank you for your inquiry! We'll get back to you shortly with more information about our cleaning services." }}</textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Save Settings</button>
+                                </form>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="mb-4">
+                                <i class="fas fa-plug fa-5x text-muted"></i>
+                            </div>
+                            <h3>Connect to Thumbtack</h3>
+                            <p class="text-muted mb-4">Connect your Thumbtack Pro account to manage your leads and bookings directly from your dashboard.</p>
+                            <div class="mb-4">
+                                <a href="{% url 'accounts:thumbtack_connect' %}" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-plug mr-2"></i> Connect to Thumbtack
+                                </a>
+                            </div>
+                            <div class="row justify-content-center mt-5">
+                                <div class="col-md-8">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h5 class="mb-0">Benefits of Connecting</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <ul class="list-group list-group-flush">
+                                                <li class="list-group-item"><i class="fas fa-check-circle text-success mr-2"></i> Automatically import leads from Thumbtack</li>
+                                                <li class="list-group-item"><i class="fas fa-check-circle text-success mr-2"></i> Respond to inquiries directly from your dashboard</li>
+                                                <li class="list-group-item"><i class="fas fa-check-circle text-success mr-2"></i> Convert Thumbtack leads into bookings with one click</li>
+                                                <li class="list-group-item"><i class="fas fa-check-circle text-success mr-2"></i> Track your Thumbtack performance metrics</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if thumbtack_profile %}
+<!-- Lead Detail Modal -->
+<div class="modal fade" id="leadDetailModal" tabindex="-1" role="dialog" aria-labelledby="leadDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="leadDetailModalLabel">Lead Details</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="leadDetailContent">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="convertToBooking">Convert to Booking</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for Thumbtack Dashboard -->
+<script>
+    $(document).ready(function() {
+        // Initialize DataTable for leads
+        $('#leadsTable').DataTable({
+            "order": [[3, "desc"]]
+        });
+        
+        // View Lead Details
+        $('.view-lead').on('click', function(e) {
+            e.preventDefault();
+            const leadId = $(this).data('id');
+            
+            // Show modal with loading spinner
+            $('#leadDetailModal').modal('show');
+            
+            // Fetch lead details via AJAX
+            $.ajax({
+                url: '/accounts/thumbtack/lead/' + leadId + '/',
+                type: 'GET',
+                success: function(response) {
+                    $('#leadDetailContent').html(response.html);
+                    $('#convertToBooking').data('id', leadId);
+                },
+                error: function() {
+                    $('#leadDetailContent').html('<div class="alert alert-danger">Error loading lead details</div>');
+                }
+            });
+        });
+        
+        // Convert Lead to Booking
+        $('#convertToBooking').on('click', function() {
+            const leadId = $(this).data('id');
+            
+            $.ajax({
+                url: '/accounts/thumbtack/lead/' + leadId + '/convert/',
+                type: 'POST',
+                data: {
+                    'csrfmiddlewaretoken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('#leadDetailModal').modal('hide');
+                        // Show success message and refresh page
+                        alert('Lead successfully converted to booking!');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + response.error);
+                    }
+                },
+                error: function() {
+                    alert('An error occurred while converting the lead.');
+                }
+            });
+        });
+        
+        // Refresh Leads
+        $('#refreshLeads').on('click', function() {
+            $(this).html('<i class="fas fa-spinner fa-spin mr-1"></i> Refreshing...');
+            $(this).prop('disabled', true);
+            
+            $.ajax({
+                url: '/accounts/thumbtack/refresh-leads/',
+                type: 'POST',
+                data: {
+                    'csrfmiddlewaretoken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + response.error);
+                        $('#refreshLeads').html('<i class="fas fa-sync-alt mr-1"></i> Refresh');
+                        $('#refreshLeads').prop('disabled', false);
+                    }
+                },
+                error: function() {
+                    alert('An error occurred while refreshing leads.');
+                    $('#refreshLeads').html('<i class="fas fa-sync-alt mr-1"></i> Refresh');
+                    $('#refreshLeads').prop('disabled', false);
+                }
+            });
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

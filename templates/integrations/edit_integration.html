@@ -35,10 +35,47 @@
                             <input type="url" name="api_url" class="form-control" value="{{ integration.base_url|default:'' }}">
                             <div class="form-text">The base URL for the API endpoint (e.g., https://api.example.com/v1)</div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">API Key</label>
-                            <input type="password" name="api_key" class="form-control" value="{{ integration.auth_data.token|default:'' }}">
-                            <div class="form-text">Leave blank to keep existing API key</div>
+                     
+                    </div>
+                     <!-- Headers Section -->
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">HTTP Headers</label>
+                            <div id="headers-container">
+                                {% if integration.headers %}
+                                    {% for key, value in integration.headers.items %}
+                                    <div class="header-row row mb-2">
+                                        <div class="col-md-5">
+                                            <input type="text" class="form-control header-key" placeholder="Header Name" value="{{ key }}">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <input type="text" class="form-control header-value" placeholder="Header Value" value="{{ value }}">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-danger remove-header"><i class="fas fa-times"></i></button>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <!-- Default empty row if no headers exist -->
+                                    <div class="header-row row mb-2">
+                                        <div class="col-md-5">
+                                            <input type="text" class="form-control header-key" placeholder="Header Name">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <input type="text" class="form-control header-value" placeholder="Header Value">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-danger remove-header"><i class="fas fa-times"></i></button>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="mt-2">
+                                <button type="button" id="add-header" class="btn btn-sm btn-secondary">Add Header</button>
+                            </div>
+                            <input type="hidden" name="headers_json" id="headers-json" value="{{ integration.headers|default:'{}' }}">
+                            <div class="form-text">Custom HTTP headers to send with API requests</div>
                         </div>
                     </div>
                 </div>
@@ -53,6 +90,8 @@
                         </div>
                     </div>
                 </div>
+
+               
 
                 <div class="form-check mb-3">
                     <input type="checkbox" name="is_active" class="form-check-input" id="isActive" {% if integration.is_active %}checked{% endif %}>
@@ -85,23 +124,104 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedType = platformType.value;
         if (selectedType === 'direct_api') {
             directApiFields.style.display = 'block';
-            // Make direct API fields required when this option is selected
-            document.querySelector('input[name="api_url"]').required = true;
-            document.querySelector('input[name="api_key"]').required = false; // Not required for edit since it might be kept unchanged
-            // Make webhook URL not required
-            document.querySelector('input[name="webhook_url"]').required = false;
+           
+            const webhookUrlInput = document.querySelector('input[name="webhook_url"]');
+            
+           
+            if (webhookUrlInput) webhookUrlInput.required = false;
         } else {
             workflowFields.style.display = 'block';
-            // Make webhook URL required when this option is selected
-            document.querySelector('input[name="webhook_url"]').required = true;
-            // Make direct API fields not required
-            document.querySelector('input[name="api_url"]').required = false;
-            document.querySelector('input[name="api_key"]').required = false;
+            const webhookUrlInput = document.querySelector('input[name="webhook_url"]');
+           
+            if (webhookUrlInput) webhookUrlInput.required = true;
+           
         }
     }
 
     platformType.addEventListener('change', updateFields);
     updateFields(); // Initial state
+    
+    // Headers management
+    const headersContainer = document.getElementById('headers-container');
+    const addHeaderBtn = document.getElementById('add-header');
+    const headersJsonInput = document.getElementById('headers-json');
+    
+    // Function to add a new header row
+    function addHeaderRow(key = '', value = '') {
+        const headerRow = document.createElement('div');
+        headerRow.className = 'header-row row mb-2';
+        headerRow.innerHTML = `
+            <div class="col-md-5">
+                <input type="text" class="form-control header-key" placeholder="Header Name" value="${key}">
+            </div>
+            <div class="col-md-5">
+                <input type="text" class="form-control header-value" placeholder="Header Value" value="${value}">
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-danger remove-header"><i class="fas fa-times"></i></button>
+            </div>
+        `;
+        headersContainer.appendChild(headerRow);
+        
+        // Add event listener to the remove button
+        headerRow.querySelector('.remove-header').addEventListener('click', function() {
+            headerRow.remove();
+            updateHeadersJson();
+        });
+        
+        // Add event listeners to update the JSON when header values change
+        headerRow.querySelector('.header-key').addEventListener('input', updateHeadersJson);
+        headerRow.querySelector('.header-value').addEventListener('input', updateHeadersJson);
+    }
+    
+    // Function to update the hidden JSON input with current headers
+    function updateHeadersJson() {
+        const headers = {};
+        document.querySelectorAll('.header-row').forEach(row => {
+            const key = row.querySelector('.header-key').value.trim();
+            const value = row.querySelector('.header-value').value.trim();
+            if (key) {
+                headers[key] = value;
+            }
+        });
+        headersJsonInput.value = JSON.stringify(headers);
+    }
+    
+    // Clear any existing event listeners by cloning and replacing the button
+    if (addHeaderBtn) {
+        const newAddHeaderBtn = addHeaderBtn.cloneNode(true);
+        addHeaderBtn.parentNode.replaceChild(newAddHeaderBtn, addHeaderBtn);
+        
+        // Add event listener to the "Add Header" button
+        newAddHeaderBtn.addEventListener('click', function() {
+            addHeaderRow();
+            updateHeadersJson();
+        });
+    }
+    
+    // Initialize existing remove buttons
+    document.querySelectorAll('.remove-header').forEach(btn => {
+        // Remove any existing event listeners by cloning and replacing
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        
+        // Add event listener to the new button
+        newBtn.addEventListener('click', function() {
+            newBtn.closest('.header-row').remove();
+            updateHeadersJson();
+        });
+    });
+    
+    // Initialize input change listeners
+    document.querySelectorAll('.header-key, .header-value').forEach(input => {
+        input.addEventListener('input', updateHeadersJson);
+    });
+    
+    // Update headers JSON on form submission
+    document.querySelector('form').addEventListener('submit', updateHeadersJson);
+    
+    // Initialize the headers JSON on page load
+    updateHeadersJson();
 });
 </script>
 {% endblock %}

@@ -19,8 +19,8 @@ class PlatformIntegration(models.Model):
     name = models.CharField(max_length=255)
     base_url = models.URLField(help_text="Base URL for the API endpoint", blank=True, null=True)
     webhook_url = models.URLField(help_text="Webhook URL for workflow platforms", blank=True, null=True)
-    auth_type = models.CharField(max_length=20, choices=AUTH_TYPE_CHOICES, default='none')
-    auth_data = models.JSONField(default=dict, blank=True, help_text="Authentication credentials")
+
+    headers = models.JSONField(default=dict, blank=True, help_text="HTTP headers to include with API requests")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

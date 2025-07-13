@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load automation_filters %}
+{% load timezone_tags %}
 
 {% block title %}Dashboard{% endblock %}
 
@@ -11,6 +12,16 @@
             <h1 class="mb-1"><i class="fas fa-robot text-primary me-2"></i>Welcome to CleaningBiz AI</h1>
             <p class="text-muted mb-0">Your automated cleaning business management platform</p>
         </div>
+        <!-- {% if business_subscriptions_count < 3 %}
+        <div>
+            <button class="btn btn-primary btn-lg shadow-sm" 
+                data-cal-link="kashif.m/cleaningbiz-demo" 
+                data-cal-namespace="cleaningbiz-demo" 
+                data-cal-config='{"layout":"month_view","theme":"auto"}'>
+                <i class="fas fa-calendar-check me-2"></i>Schedule Your Demo
+            </button>
+        </div>
+        {% endif %} -->
     </div>
 
     <!-- Key Metrics -->
@@ -286,7 +297,7 @@
                                 </div>
                                 <div>
                                     <h6 class="mb-1">{{ activity.title|default:"Activity" }}</h6>
-                                    <small class="text-muted">{{ activity.timestamp|format_timestamp }}</small>
+                                    <small class="text-muted" data-utc-datetime="{{ activity.timestamp|date:'c' }}">{{ activity.timestamp|to_business_timezone }}</small>
                                 </div>
                             </div>
                         </div>
@@ -328,4 +339,11 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Cal element-click embed code begins -->
+<script type="text/javascript">
+  (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; if(typeof namespace === "string"){cal.ns[namespace] = cal.ns[namespace] || api;p(cal.ns[namespace], ar);p(cal, ["initNamespace", namespace]);} else p(cal, ar); return;} p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
+  Cal("init", "cleaningbiz-demo", {origin:"https://cal.com"});
+  Cal.ns["cleaningbiz-demo"]("ui", {"hideEventTypeDetails":false,"layout":"month_view"});
+</script>
+<!-- Cal element-click embed code ends -->
 {% endblock %}

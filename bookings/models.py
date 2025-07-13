@@ -181,6 +181,6 @@ class Booking(models.Model):
     
 
     def get_cleaner_payout(self):
-        payout = float(self.totalPrice * self.business.cleaner_pay_percentage/100)
-
-        return payout
+        # TODO: Implement proper cleaner payment calculation
+        # This is a placeholder until the proper payment system is implemented
+        return 0.0

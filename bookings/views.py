@@ -14,7 +14,9 @@ from django.db.models import Min, Count
 from django.http import JsonResponse
 from automation.utils import format_phone_number
 from django.utils import timezone
+import pytz
 
+@login_required
 def all_bookings(request):
     if not Business.objects.filter(user=request.user).exists():
         return redirect('accounts:register_business')
@@ -33,7 +35,9 @@ def all_bookings(request):
     # Upcoming bookings (not completed and future date)
     upcoming_bookings = all_bookings.filter(
         isCompleted=False,
-        cleaningDate__gte=today
+        cleaningDate__gte=today,
+        invoice__isnull=True,
+        invoice__isPaid=False
     ).order_by('cleaningDate', 'startTime')
     
     # Upcoming paid bookings (not completed, future date, with paid invoice)
@@ -216,8 +220,15 @@ def customer_detail(request, identifier):
 @transaction.atomic
 def create_booking(request):
     from datetime import datetime, timedelta
+    import pytz
+    from bookings.timezone_utils import convert_local_to_utc
+    
     business = Business.objects.get(user=request.user)
     business_settings = BusinessSettings.objects.get(business=business)
+    # Get business timezone from model or form submission
+    business_timezone = business.timezone
+    
+  
     customAddons = CustomAddons.objects.filter(business=business)
     if request.method == 'POST':
         try:
@@ -231,6 +242,25 @@ def create_booking(request):
             if not phone_number:
                 messages.error(request, 'Please enter a valid US phone number.')
                 return redirect('bookings:create_booking')
+            
+            cleaningDate = request.POST.get('cleaningDate')
+            start_time = request.POST.get('startTime')
+
+            print(f"cleaningDate: {cleaningDate}")
+            print(f"start_time: {start_time}")
+           
+
+            # Convert cleaning date and time from business timezone to UTC
+            start_time_utc = convert_local_to_utc(
+                cleaningDate,
+                start_time,
+                business_timezone
+            ).time()
+
+            end_time_utc = (datetime.strptime(start_time_utc.strftime('%H:%M'), '%H:%M') + timedelta(hours=1)).strftime('%H:%M')
+
+            print(f"start_time_utc: {start_time_utc}")
+            print(f"end_time_utc: {end_time_utc}")
             
             # Create the booking
             booking = Booking.objects.create(
@@ -251,9 +281,11 @@ def create_booking(request):
                 squareFeet=int(request.POST.get('squareFeet', 0)),
 
                 serviceType=request.POST.get('serviceType'),
-                cleaningDate=request.POST.get('cleaningDate'),
-                startTime=request.POST.get('startTime'),
-                endTime=(datetime.strptime(request.POST.get('startTime'), '%H:%M') + timedelta(hours=1)).strftime('%H:%M'),
+                # Convert cleaning date and time from business timezone to UTC
+                cleaningDate=cleaningDate,
+                startTime=start_time_utc,
+                endTime=end_time_utc,
+              
                 recurring=request.POST.get('recurring'),
                 paymentMethod=request.POST.get('paymentMethod', 'creditcard'),
 
@@ -290,6 +322,10 @@ def create_booking(request):
                         qty=quantity
                     )
                     booking.customAddons.add(newCustomBookingAddon)
+            
+            from .utils import send_jobs_to_cleaners
+
+            send_jobs_to_cleaners(business, booking)
 
 
 
@@ -325,7 +361,8 @@ def create_booking(request):
 
     context = {
         'customAddons': customAddons,
-        'prices': json.dumps(prices)
+        'prices': json.dumps(prices),
+        'business_timezone': business_timezone
     }
 
     return render(request, 'bookings/create_booking.html', context)
@@ -461,15 +498,16 @@ def edit_booking(request, bookingId):
     }
 
     context = {
-        'booking': booking,
         'customAddons': customAddons,
         'prices': json.dumps(prices),
-        'existing_custom_addons': {addon.addon.id: addon.qty for addon in booking.customAddons.all()}
+        'standardAddons': standardAddons,
+        'today': timezone.now().date(),
+        'business_timezone': business_timezone
     }
 
-    return render(request, 'bookings/edit_booking.html', context)
+    return render(request, 'bookings/create_booking.html', context)
 
-
+# ... (rest of the code remains the same)
 def mark_completed(request, bookingId):
     booking = get_object_or_404(Booking, bookingId=bookingId)
     booking.isCompleted = True
@@ -579,10 +617,13 @@ def booking_calendar(request):
     # Define working hours for the day columns (6 AM to 11 PM)
     working_hours = list(range(6, 24))  # 6 AM to 11 PM
     
-    # Get current time for the now indicator
-    now = timezone.now()
-    current_hour = now.hour
-    current_minute = now.minute
+    # Get current time in business timezone for the now indicator
+    utc_now = timezone.now()
+    business_timezone = business.get_timezone()
+    local_now = utc_now.astimezone(business_timezone)
+    
+    current_hour = local_now.hour
+    current_minute = local_now.minute
     # Calculate position for the now indicator (pixels from top)
     current_time_position = (current_hour - working_hours[0]) * 60 + current_minute
     
@@ -601,12 +642,25 @@ def booking_calendar(request):
             else:
                 status = "Unpaid"
         
-        # Calculate booking time details for positioning
-        start_time_obj = datetime.strptime(booking.startTime.strftime('%H:%M'), '%H:%M')
-        end_time = None
+        # Convert UTC times to business timezone
+        business_timezone = business.get_timezone()
         
+        # Create datetime objects in UTC
+        utc_start_datetime = datetime.combine(booking.cleaningDate, booking.startTime)
+        utc_start_datetime = pytz.utc.localize(utc_start_datetime) if utc_start_datetime.tzinfo is None else utc_start_datetime
+        
+        # Convert to business timezone
+        local_start_datetime = utc_start_datetime.astimezone(business_timezone)
+        
+        # Get the time component for positioning
+        start_time_obj = datetime.strptime(local_start_datetime.strftime('%H:%M'), '%H:%M')
+        
+        # Handle end time
         if booking.endTime:
-            end_time_obj = datetime.strptime(booking.endTime.strftime('%H:%M'), '%H:%M')
+            utc_end_datetime = datetime.combine(booking.cleaningDate, booking.endTime)
+            utc_end_datetime = pytz.utc.localize(utc_end_datetime) if utc_end_datetime.tzinfo is None else utc_end_datetime
+            local_end_datetime = utc_end_datetime.astimezone(business_timezone)
+            end_time_obj = datetime.strptime(local_end_datetime.strftime('%H:%M'), '%H:%M')
         else:
             # Default to 1 hour duration if no end time
             end_time_obj = start_time_obj + timedelta(hours=1)
@@ -622,7 +676,7 @@ def booking_calendar(request):
         
         bookings_by_date[booking.cleaningDate].append({
             'id': booking.bookingId,
-            'time': booking.startTime,
+            'time': local_start_datetime.time(),  # Use local time instead of UTC
             'hour': hour,  # For positioning in the correct hour row
             'minute': minute,  # For positioning within the hour
             'duration': duration_pixels,  # For determining height of booking
